@@ -114,7 +114,7 @@
 
   syncSourceMode();
   updateDeviceHelp();
-  fetch('/api/health').then(async response => {
+  window.CCTVMode.fetch('/api/health').then(async response => {
     const body = await response.json();
     if (!response.ok || !body.runtime) throw new Error('API health unavailable');
     cudaAvailable = Boolean(body.runtime.cuda_available);
@@ -124,7 +124,7 @@
       report('runtime นี้ไม่มี CUDA · เปลี่ยนเป็น Auto ซึ่งจะใช้ CPU');
     }
     const gpuName = body.runtime.gpu && body.runtime.gpu.name ? ` · ${body.runtime.gpu.name}` : '';
-    const uploadRoute = await fetch('/api/live/start-upload', { method: 'OPTIONS' });
+    const uploadRoute = await window.CCTVMode.fetch('/api/live/start-upload', { method: 'OPTIONS' });
     uploadEndpointMissing = uploadRoute.status === 404;
     runtimeStatus.textContent = uploadEndpointMissing
       ? 'API รุ่นเก่า · ไม่พบ file-upload route · รีสตาร์ต Uvicorn'

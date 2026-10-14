@@ -12,7 +12,7 @@
   const node = (tag, text) => {const n = document.createElement(tag); n.textContent = text; return n;};
   function message(text) { $('rlMessage').textContent = text; }
   async function api(path, options) {
-    const response = await fetch(path, options);
+    const response = await window.CCTVMode.fetch(path, options);
     let body;
     try { body = await response.json(); } catch (_) { throw new Error('API ไม่ได้ส่งข้อมูลประวัติที่อ่านได้'); }
     if (!response.ok) throw new Error(body.error?.message || 'เรียก API ประวัติไม่สำเร็จ');
@@ -38,6 +38,7 @@
     if (Array.from($('rlSource').options).some(x => x.value === selectedSource)) $('rlSource').value = selectedSource;
   }
   async function load(refreshSources = false) {
+    if (window.CCTVMode.active) return;
     const token = ++requestToken;
     message('กำลังอ่านประวัติจากฐานข้อมูล…');
     $('rlBody').replaceChildren(); $('rlEmpty').hidden = true;
@@ -106,6 +107,8 @@
   }
   async function review(status) {
     if (!selected) return;
+    if (window.CCTVMode.active) return;
+    window.CCTVMode.lock('review',true);
     const id = selected.id, token = detailToken;
     reviewButtons(true); $('rlReviewMessage').textContent = 'กำลังบันทึกสถานะ…';
     try {
@@ -114,7 +117,7 @@
       await detail(id); await load();
     } catch (err) {
       if (token === detailToken) { $('rlReviewMessage').textContent = 'บันทึกไม่สำเร็จ · '+err.message; reviewButtons(false); }
-    }
+    } finally { window.CCTVMode.lock('review',false); }
   }
   function close() { ++detailToken; selected = null; $('rlMask').classList.remove('on'); }
   $('rlClose').addEventListener('click',close);
@@ -137,5 +140,6 @@
     load(true);
     detail(id);
   });
+  document.addEventListener('cctv:modechange',ev => { ++requestToken; close(); clearTimeout(timer); if (!ev.detail.demo) { page=1; load(true); } });
   document.querySelectorAll('[data-go="logs"]').forEach(button => button.addEventListener('click',() => {page = 1; load(true);}));
 }());

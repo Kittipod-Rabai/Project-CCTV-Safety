@@ -12,6 +12,7 @@
     if (cls) el.className = cls;
     return el;
   };
+  let modeToken = 0;
   let cursor = null, busy = false, refreshRequested = false, recover = false, toastItem, toastTimer, renderKey = '';
   const items = new Map();
   function openHistory(item) {
@@ -49,15 +50,18 @@
     toastTimer = setTimeout(() => { $('ntToast').hidden = true; },12000);
   }
   async function load(snapshot = false) {
+    if (window.CCTVMode.active) return;
+    const token = modeToken;
     if (busy) { refreshRequested ||= snapshot; return; }
     busy = true;
     const controller = new AbortController(), timeout = setTimeout(() => controller.abort(),8000);
     let more = false;
     try {
       const initial = cursor === null, previous = cursor;
-      const response = await fetch('/api/notifications' +
+      const response = await window.CCTVMode.fetch('/api/notifications' +
         (initial || snapshot || recover ? '' : '?after_id='+cursor+'&limit=50'), {signal:controller.signal});
       const data = await response.json();
+      if (token !== modeToken || window.CCTVMode.active) return;
       if (!response.ok) throw new Error(data.error?.message || 'อ่านรายการแจ้งไม่สำเร็จ');
       const fresh = initial || data.reset ? [] : data.items.filter(x => x.id > previous && x.status === 'new');
       if (initial || snapshot || recover || data.reset) items.clear();
@@ -69,6 +73,7 @@
       $('ntRule').textContent = 'พัก '+data.cooldown_s+' วินาทีต่อรายการประวัติ · รับทราบ/ปิดรายการใน Logs เพื่อหยุดแจ้งซ้ำ';
       if (fresh.length) toast(fresh.reduce((a,b) => a.id>b.id ? a : b),fresh.length);
     } catch (err) {
+      if (token !== modeToken || window.CCTVMode.active) return;
       recover = true;
       $('ntCount').textContent = '—';
       $('ntMessage').textContent = 'อ่านการแจ้งเตือนไม่ได้ · '+err.message+' · รายการเดิมด้านล่างเป็นข้อมูลที่อ่านได้ครั้งก่อน';
@@ -94,5 +99,6 @@
   $('ntToastOpen').addEventListener('click',() => { if (toastItem) openHistory(toastItem); });
   document.addEventListener('keydown',ev => { if (ev.key === 'Escape' && !$('ntPanel').hidden) close(); });
   setInterval(() => { if (!document.hidden) load(!$('ntPanel').hidden); },2000);
+  document.addEventListener('cctv:modechange',ev => { ++modeToken; clearTimeout(toastTimer); items.clear(); cursor=null; renderKey=''; refreshRequested=false; if (!ev.detail.demo) load(true); });
   load();
 }());

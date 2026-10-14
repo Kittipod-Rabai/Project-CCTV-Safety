@@ -179,7 +179,7 @@
   async function callApi(url, options) {
     let res;
     try {
-      res = await fetch(url, options);
+      res = await window.CCTVMode.fetch(url, options);
     } catch (e) {
       return { ok: false, message: MSG_NETWORK };
     }
@@ -1363,7 +1363,7 @@
     ui.preview.appendChild(img);
   }
 
-  async function analyze() {
+  async function analyzeRun() {
     const file = st.file;
     if (!file) { setState(ui.status, 'error', 'กรุณาเลือกไฟล์ภาพหรือวิดีโอก่อน'); return; }
     const kind = st.kind;
@@ -1433,6 +1433,12 @@
     updatePrivacySettingLabels();
   });
   [ui.faceConfidence, ui.facePadding, ui.faceBlur].forEach(input => input.addEventListener('input', updatePrivacySettingLabels));
+  async function analyze() {
+    if (window.CCTVMode.active) return;
+    window.CCTVMode.lock('analyze',true);
+    try { await analyzeRun(); } finally { window.CCTVMode.lock('analyze',false); }
+  }
+  document.addEventListener('cctv:modechange',ev => { if (!ev.detail.demo) loadHealth(); });
   ui.run.addEventListener('click', analyze);
   ui.healthRefresh.addEventListener('click', loadHealth);
   window.addEventListener('beforeunload', () => { if (st.url) URL.revokeObjectURL(st.url); });

@@ -94,7 +94,7 @@
     metrics.textContent = `เฉลี่ยสูงสุด 120 งานล่าสุด · Decode ${value('decode')} · YuNet ${value('face')} · YOLO ${value('yolo')} · X3D ${value('x3d')} · Preview ${value('preview_encode')} · ประมวลผล ${fps} FPS (ต้นทาง ${sourceFps}) · คิว ${message.queue_depth ?? 0}/12 · สแกนหน้า ${message.frames_face_scanned ?? 0}/${message.frames_received ?? 0}`;
   }
   async function request(path, method) {
-    const r = await fetch(path, { method: method || 'GET', headers: {'Content-Type': 'application/json'} });
+    const r = await window.CCTVMode.fetch(path, { method: method || 'GET', headers: {'Content-Type': 'application/json'} });
     const body = await r.json();
     if (!r.ok) throw new Error(body.error?.message || 'Live API error');
     return body;
@@ -148,9 +148,9 @@
         data.append('file', file);
         data.append('model', $('liveModel').value);
         data.append('device', device.value);
-        result = await fetch('/api/live/start-upload', {method:'POST', body:data});
+        result = await window.CCTVMode.fetch('/api/live/start-upload', {method:'POST', body:data});
       } else {
-        result = await fetch('/api/live/start', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
+        result = await window.CCTVMode.fetch('/api/live/start', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
           source_type:sourceType.value, source:source.value, model:$('liveModel').value, device:device.value
         })});
       }
@@ -216,6 +216,7 @@
     try { await request('/api/live/stop', 'POST'); report('กำลังหยุดและระบายเฟรมที่รับแล้ว'); }
     catch (err) { report(err.message); stop.disabled = false; }
   });
+  document.addEventListener('cctv:modechange',ev => { if (ev.detail.demo) { ++generation; clearTimeout(statusTimer); if (socket) { const old=socket; socket=null; old.close(); } } });
   window.addEventListener('beforeunload', () => {
     clearTimeout(statusTimer);
     if (socket) socket.close();

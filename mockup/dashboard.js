@@ -16,7 +16,7 @@
   };
   let token = 0, controller, loading = false;
   async function api(path, signal) {
-    const response = await fetch(path, {signal});
+    const response = await window.CCTVMode.fetch(path, {signal});
     let data;
     try { data = await response.json(); } catch (_) { throw new Error('API ส่งข้อมูลที่อ่านไม่ได้'); }
     if (!response.ok) throw new Error(data.error?.message || 'เรียก API ไม่สำเร็จ');
@@ -78,6 +78,7 @@
     $('dbLiveMessage').textContent = 'อ่านสถานะจาก API แล้ว · ' + fmt(new Date());
   }
   async function load({background = false} = {}) {
+    if (window.CCTVMode.active) return;
     const current = ++token;
     if (controller) controller.abort();
     controller = new AbortController();
@@ -116,5 +117,9 @@
   setInterval(() => {
     if (!loading && !document.hidden && document.body.dataset.page === 'dashboard') load({background:true});
   }, 10000);
+  document.addEventListener('cctv:modechange',ev => {
+    ++token; controller?.abort(); loading = false;
+    if (!ev.detail.demo) load();
+  });
   load();
 }());

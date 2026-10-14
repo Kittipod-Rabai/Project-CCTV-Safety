@@ -18,6 +18,7 @@
     ['gap','ช่วงขาด track สูงสุด (วินาที)',.1,3,.01,'azTrackGap','tracking.max_track_gap_s']
   ];
   const controls = new Map();
+  let modeToken = 0;
   let latest = null, revision = null, loaded = false, busy = false, dirty = false, conflict = false;
   const node = (tag,text) => { const el = document.createElement(tag); el.textContent = text; return el; };
   const read = (value,path) => path.split('.').reduce((obj,key) => obj[key],value);
@@ -64,7 +65,7 @@
   async function api(options) {
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(),10000);
     try {
-      const response = await fetch('/api/settings',{...options,signal:controller.signal,cache:'no-store'});
+      const response = await window.CCTVMode.fetch('/api/settings',{...options,signal:controller.signal,cache:'no-store'});
       const data = await response.json();
       if (!response.ok) {
         const error = new Error(data.error?.message || 'เรียก API ตั้งค่าไม่สำเร็จ');
@@ -74,24 +75,29 @@
     } finally { clearTimeout(timer); }
   }
   async function load(force = false) {
-    if (busy) return;
+    if (busy || window.CCTVMode.active) return;
+    const token = modeToken;
     busy = true; buttons(); $('stMessage').textContent = 'กำลังอ่านค่าที่บันทึก…';
     try {
-      const data = await api(); latest = data;
+      const data = await api();
+      if (token !== modeToken) return;
+      latest = data;
       if (!dirty || force || !loaded) editor(data);
       analyzer();
       $('stMessage').textContent = dirty ? 'มีร่างที่ยังไม่บันทึก คงค่าที่แก้ไว้ หาก revision เปลี่ยนให้โหลดค่าปัจจุบันก่อนบันทึก' : 'อ่านค่าจาก backend แล้ว';
     } catch (error) {
+      if (token !== modeToken) return;
       $('stMessage').textContent = 'อ่านค่าตั้งไม่ได้ · '+error.message + (loaded ? ' · ฟอร์มยังเป็นค่าที่โหลดครั้งก่อน' : '');
       $('azSavedSettingsMeta').textContent = 'อ่านค่าที่บันทึกไม่ได้ · การวิเคราะห์จะตรวจที่ backend อีกครั้ง';
-    } finally { busy = false; buttons(); }
+    } finally { if (token === modeToken) { busy = false; buttons(); } }
   }
   $('stForm').addEventListener('input',() => { dirty = true; buttons(); $('stMessage').textContent = 'มีค่าที่แก้แต่ยังไม่บันทึก'; });
   $('stForm').addEventListener('submit',async ev => {
     ev.preventDefault();
-    if (busy || !loaded || conflict || !$('stForm').reportValidity()) return;
+    if (window.CCTVMode.active || busy || !loaded || conflict || !$('stForm').reportValidity()) return;
     const settings = {};
     for (const [path,input] of controls) set(settings,path,Number(input.value));
+    window.CCTVMode.lock('settings',true);
     busy = true; buttons(); $('stMessage').textContent = 'กำลังบันทึกค่า…';
     try {
       const data = await api({method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({analysis_settings:settings,revision})});
@@ -102,7 +108,7 @@
       $('stMessage').textContent = conflict
         ? 'มีการบันทึกค่าจากหน้าต่างอื่น กรุณาโหลดค่าปัจจุบันแล้วแก้ใหม่ ร่างนี้ยังไม่ถูกบันทึก'
         : 'บันทึกไม่สำเร็จ · '+error.message+' · คงค่าที่แก้ไว้ในฟอร์ม';
-    } finally { busy = false; buttons(); }
+    } finally { busy = false; buttons(); window.CCTVMode.lock('settings',false); }
   });
   $('stLoad').addEventListener('click',() => load(true));
   $('stDefaults').addEventListener('click',() => {
@@ -112,5 +118,6 @@
   });
   $('azUseSavedSettings').addEventListener('change',analyzer);
   document.querySelectorAll('[data-go="settings"],[data-go="analyze"]').forEach(button => button.addEventListener('click',() => load()));
+  document.addEventListener('cctv:modechange',ev => { ++modeToken; busy=false; if (!ev.detail.demo) load(); });
   analyzer(); buttons(); load();
 }());

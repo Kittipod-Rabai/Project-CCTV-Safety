@@ -671,6 +671,25 @@ body:is([data-page="analyze"],[data-page="logs"],[data-page="dashboard"],[data-p
 .st-field input,.st-field select{background:var(--panel2);border:1px solid var(--line);border-radius:7px;color:var(--text);padding:9px;min-width:0;width:100%}
 .st-actions{display:flex;gap:10px;flex-wrap:wrap}.az-saved-settings{padding:10px 12px;font-size:12px;line-height:1.7}.az-saved-settings small{display:block;color:var(--muted)}
 .az-model-control input:disabled,.az-model-control select:disabled{opacity:.55}
+/* Explicit whole-site demo mode */
+[hidden]{display:none!important}
+body[data-mode="real"] .chip-mock,body[data-mode="real"] .side-foot,body[data-mode="real"] #navLive{display:none!important}
+body[data-mode="real"] .chip-real{display:inline-block}
+body[data-mode="demo"] .chip-real,body[data-mode="demo"] #ntToggle,body[data-mode="demo"] #ntPanel,body[data-mode="demo"] #ntToast,body[data-mode="demo"] .side-foot,body[data-mode="demo"] #navLive,body[data-mode="demo"] #navLogs{display:none!important}
+body[data-mode="demo"] .view:not(#demoView){display:none!important}
+#demoView{overflow:auto;min-height:0;padding-bottom:24px}
+#demoView.on{display:flex;flex-direction:column;gap:16px}
+#modeBanner{flex:none;padding:9px 20px;font-size:12px;line-height:1.6;border-bottom:1px solid var(--line);color:var(--muted)}
+body[data-mode="demo"] #modeBanner{background:#3a2d0a;color:#fcd34d;border-color:#85661e}
+.demo-card{flex:none;padding:18px;display:flex;flex-direction:column;gap:12px}
+.demo-actions{display:flex;flex-wrap:wrap;gap:8px}
+.demo-card input,.demo-card select{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:8px;max-width:100%}
+.demo-table-wrap{overflow-x:auto}.demo-table-wrap table{width:100%;border-collapse:collapse}.demo-table-wrap th,.demo-table-wrap td{padding:10px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--line)}
+.demo-preview{width:100%;max-width:640px;height:auto;border-radius:8px}
+.demo-dialog{background:#101923;color:#e2e8f0;border:1px solid #64748b;border-radius:12px;padding:24px;max-width:min(560px,90vw)}
+.demo-dialog::backdrop{background:#000a}.demo-dialog .btn{margin:8px 8px 0 0}
+body:not([data-demo-playing="true"]) .live-demo *{animation-play-state:paused!important}
+@media(max-width:700px){.topbar{flex-wrap:wrap;height:auto;min-height:68px;padding:10px;gap:8px}#modeToggle{white-space:nowrap}#modeBanner{padding:8px 12px}.demo-card{padding:12px}}
 </style>
 <style>
 /* Live page desktop proportions: preview first, results beside it, controls on one readable row. */
@@ -726,6 +745,24 @@ body:is([data-page="analyze"],[data-page="logs"],[data-page="dashboard"],[data-p
   .live-demo .live-side{grid-template-columns:minmax(0,1fr)}
   .live-demo .live-side>.card:last-child{min-height:300px}
 }
+/* Explicit whole-site demo mode */
+[hidden]{display:none!important}
+body[data-mode="real"] .chip-mock,body[data-mode="real"] .side-foot,body[data-mode="real"] #navLive{display:none!important}
+body[data-mode="demo"] .chip-real,body[data-mode="demo"] #ntToggle,body[data-mode="demo"] #ntPanel,body[data-mode="demo"] #ntToast,body[data-mode="demo"] .side-foot,body[data-mode="demo"] #navLive,body[data-mode="demo"] #navLogs{display:none!important}
+body[data-mode="demo"] .view:not(#demoView){display:none!important}
+#demoView{overflow:auto;min-height:0;padding-bottom:24px}
+#demoView.on{display:flex;flex-direction:column;gap:16px}
+#modeBanner{flex:none;padding:9px 20px;font-size:12px;line-height:1.6;border-bottom:1px solid var(--line);color:var(--muted)}
+body[data-mode="demo"] #modeBanner{background:#3a2d0a;color:#fcd34d;border-color:#85661e}
+.demo-card{flex:none;padding:18px;display:flex;flex-direction:column;gap:12px}
+.demo-actions{display:flex;flex-wrap:wrap;gap:8px}
+.demo-card input,.demo-card select{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:8px;max-width:100%}
+.demo-table-wrap{overflow-x:auto}.demo-table-wrap table{width:100%;border-collapse:collapse}.demo-table-wrap th,.demo-table-wrap td{padding:10px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--line)}
+.demo-preview{width:100%;max-width:640px;height:auto;border-radius:8px}
+.demo-dialog{background:#101923;color:#e2e8f0;border:1px solid #64748b;border-radius:12px;padding:24px;max-width:min(560px,90vw)}
+.demo-dialog::backdrop{background:#000a}.demo-dialog .btn{margin:8px 8px 0 0}
+body:not([data-demo-playing="true"]) .live-demo *{animation-play-state:paused!important}
+@media(max-width:700px){.topbar{flex-wrap:wrap;height:auto;min-height:68px;padding:10px;gap:8px}#modeToggle{white-space:nowrap}#modeBanner{padding:8px 12px}.demo-card{padding:12px}}
 </style>
 </head>
 <body data-page="dashboard">
@@ -865,7 +902,7 @@ body:is([data-page="analyze"],[data-page="logs"],[data-page="dashboard"],[data-p
         </div>
       </section>
       <section class="live-demo" aria-labelledby="liveDemoTitle">
-       <div class="live-demo-head"><h3 id="liveDemoTitle">จอมอนิเตอร์ตัวอย่าง</h3><span class="mock-tag">ข้อมูลจำลอง · ไม่ได้เชื่อมกับแหล่ง Live ด้านบน</span></div>
+       <div class="live-demo-head"><h3 id="liveDemoTitle">จอมอนิเตอร์ตัวอย่าง</h3><span class="mock-tag">ข้อมูลจำลอง · ฉากและคะแนนตัวอย่าง ไม่ได้เชื่อมกับกล้องหรือโมเดล</span></div>
        <div class="live-bar">
         <div class="seg">
           <button class="on" data-lay="3">3 × N</button>
@@ -1245,7 +1282,7 @@ const fmtD  = d => pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+String(d.getFull
 const PAGES = {
   dashboard:['ภาพรวมผลวิเคราะห์','สรุปประวัติจริงและสถานะ Live pilot'],
   settings:['ตั้งค่าการวิเคราะห์','บันทึกค่าเริ่มต้นสำหรับคำขอและเซสชันถัดไป'],
-  live:     ['Live CCTV Monitoring','ภาพสดพร้อมผลตรวจจับ 4 เหตุการณ์แบบเรียลไทม์'],
+  live:     ['Live CCTV Monitoring','Live pilot · วิเคราะห์แหล่งภาพหนึ่งรายการด้วยโมเดลจริง'],
   logs:     ['ประวัติผลตรวจจับ','ผลจากโมเดลจริง · รอตรวจสอบโดยผู้ใช้'],
   analyze:  ['Upload & Analyze','วิเคราะห์ภาพ/วิดีโอด้วยโมเดลจริงผ่าน API (ต้นแบบ pilot)']
 };
@@ -1269,7 +1306,9 @@ function go(p){
 /* ============ CLOCK ============ */
 setInterval(()=>{
   const d = new Date(), s = fmtD(d)+'  '+fmtT(d);
-  clock.textContent = s; liveClock.textContent = s;
+  clock.textContent = s;
+  const demoClock = document.getElementById('liveClock');
+  if (demoClock) demoClock.textContent = s;
   document.querySelectorAll('[data-osdclock]').forEach(e=>e.textContent = fmtD(d)+' '+fmtT(d));
 },1000);
 
@@ -1406,7 +1445,7 @@ function jitter(){
     r.querySelector('.bar2 i').style.width = (v*100).toFixed(0)+'%';
   });
 }
-jitter(); setInterval(jitter, 1400);
+// Demo mode owns the update timer.
 
 /* live event stream */
 function pushFeed(){
@@ -1423,8 +1462,7 @@ function pushFeed(){
   feed.prepend(el);
   while(feed.children.length>14) feed.lastChild.remove();
 }
-for(let i=0;i<6;i++) pushFeed();
-setInterval(pushFeed, 4200);
+// Demo mode starts and stops the event stream explicitly.
 
 /* Real history/dashboard use their API controllers; only demo monitors use mock data. */
 
@@ -1468,12 +1506,13 @@ navLogs.textContent = '—';
 navLive.textContent = SCENES.filter(s=>s.boxes.length).length;
 </script>
 <!-- Upload & Analyze: real API calls (no mock data) -->
-<script src="dashboard.js?v=20261014-dashboard"></script>
-<script src="logs.js?v=20261014-notifications"></script>
-<script src="notifications.js?v=20261014-notifications"></script>
-<script src="settings.js?v=20261014-settings"></script>
-<script src="analyze.js?v=20261014-settings"></script>
-<script src="live.js?v=20261014-settings"></script>
-<script src="live-flow.js?v=20261014-pipeline-live"></script>
+<script src="demo-mode.js?v=20261014-demo"></script>
+<script src="dashboard.js?v=20261014-demo"></script>
+<script src="logs.js?v=20261014-demo"></script>
+<script src="notifications.js?v=20261014-demo"></script>
+<script src="settings.js?v=20261014-demo"></script>
+<script src="analyze.js?v=20261014-demo"></script>
+<script src="live.js?v=20261014-demo"></script>
+<script src="live-flow.js?v=20261014-demo"></script>
 </body>
 </html>
