@@ -20,9 +20,11 @@ import time
 from threading import BoundedSemaphore
 from time import perf_counter
 from pathlib import Path
+from typing import Literal
 from typing import Iterator
 
-from fastapi import Depends, FastAPI, File, Form, Request, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, File, Form, Query, Request, UploadFile, WebSocket, WebSocketDisconnect
+from pydantic import BaseModel
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -53,9 +55,13 @@ from webapp import config, media  # noqa: E402
 from webapp.media import ApiError  # noqa: E402
 from webapp.models import ModelLoadFailed, ModelRegistry, WeightsMissing, resolve_device, runtime_status  # noqa: E402
 from webapp.live import LiveSession, validate_source  # noqa: E402
+from webapp.event_store import EventStore, StorageUnavailable, EVENT_TYPES, frame_observations, window_observation  # noqa: E402
 
 logger = logging.getLogger("webapp.api")
 
+
+class ReviewStatusUpdate(BaseModel):
+    status: Literal["new", "ack", "closed"]
 
 _HTTP_ERROR_CODES = {404: "not_found", 405: "method_not_allowed"}
 
@@ -203,7 +209,7 @@ def _analysis_settings(raw: str | None, base_thresholds: dict) -> dict:
 
 
 def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_factory=None,
-               capture_factory=None) -> FastAPI:
+               capture_factory=None, event_store=None) -> FastAPI:
     weights_dir = Path(weights_dir) if weights_dir is not None else config.WEIGHTS_DIR
     face_anonymizer_factory = face_anonymizer_factory or YuNetFaceAnonymizer
     if registry is None:
@@ -214,6 +220,8 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
 
     app = FastAPI(title="CCTV Safety — Upload & Analyze (pilot)", version=config.SCHEMA_VERSION)
     app.state.registry = registry
+    store = event_store if event_store is not None else EventStore(config.EVENT_DB_PATH)
+    app.state.event_store = store
     analysis_semaphore = BoundedSemaphore(1)
     app.state.analysis_semaphore = analysis_semaphore
     live_lock = threading.Lock()
@@ -224,6 +232,10 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
         removed = _cleanup_stale_live_uploads()
         if removed:
             logger.info("Removed %d stale Live replay upload(s)", removed)
+        try:
+            store.interrupt_running()
+        except StorageUnavailable:
+            logger.warning("Observation database unavailable; history requests will return 503")
 
     @app.on_event("shutdown")
     async def stop_live_on_shutdown():
@@ -260,6 +272,10 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
     @app.exception_handler(FaceModelUnavailable)
     async def _face_model_unavailable(_: Request, exc: FaceModelUnavailable):
         return _error(503, "privacy_model_unavailable", str(exc))
+
+    @app.exception_handler(StorageUnavailable)
+    async def _storage_unavailable(_: Request, exc: StorageUnavailable):
+        return _error(503, "storage_unavailable", str(exc))
 
     @app.exception_handler(StarletteHTTPException)
     async def _http_error(request: Request, exc: StarletteHTTPException):
@@ -328,6 +344,43 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
         return {**_envelope(None, is_model_output=False), "status": "ok", "device": device,
                 "runtime": runtime_status(), "models": models}
 
+    @app.get("/api/logs")
+    def list_logs(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100),
+                  q: str = Query("", max_length=200), status: Literal["new", "ack", "closed"] | None = None,
+                  event_type: str | None = None, run_id: str | None = Query(None, max_length=64),
+                  period: Literal["all", "today", "yesterday", "7d"] = "all"):
+        if event_type is not None and event_type not in EVENT_TYPES:
+            raise ApiError(400, "invalid_parameter", "Unknown observation type")
+        return store.list(page=page,page_size=page_size,q=q,status=status,event_type=event_type,run_id=run_id,period=period)
+
+    @app.get("/api/logs/sources")
+    def log_sources():
+        return {"items": store.sources()}
+
+    @app.get("/api/logs/{event_id}")
+    def log_detail(event_id: int):
+        item = store.get(event_id)
+        if item is None:
+            raise ApiError(404, "not_found", "Observation was not found")
+        return item
+
+    @app.patch("/api/logs/{event_id}")
+    def log_review(event_id: int, payload: ReviewStatusUpdate):
+        if not store.set_status(event_id, payload.status):
+            raise ApiError(404, "not_found", "Observation was not found")
+        return store.get(event_id)
+
+    def prepare_live_history(session, name, source_type):
+        store.begin(name, source_type, session.session_id)
+        session.on_frame = lambda entry: store.observe(session.session_id, session.model, frame_observations(entry))
+        session.on_prediction = lambda window: store.observe(session.session_id, config.STAGE2_MODEL, [window_observation(window)])
+
+    def finish_live_history(session, cleanup):
+        try:
+            store.finish(session.session_id, session._outcome)
+        finally:
+            cleanup()
+
     @app.post("/api/live/start")
     def live_start(payload: dict):
         """Start one local file replay or RTSP stream. Source/credentials are never echoed."""
@@ -356,7 +409,8 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
                                       active_settings, weights_dir, device_requested=requested_device,
                                       capture_factory=capture_factory,
                                       face_anonymizer_factory=face_anonymizer_factory)
-                session.on_finish = analysis_semaphore.release
+                prepare_live_history(session, safe_source, source_type)
+                session.on_finish = lambda: finish_live_history(session, analysis_semaphore.release)
                 app.state.live_session = session
                 session.start()
             except Exception:
@@ -412,7 +466,8 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
                             uploaded_path.unlink(missing_ok=True)
                         finally:
                             analysis_semaphore.release()
-                    session.on_finish = cleanup_upload
+                    prepare_live_history(session, file.filename, "replay")
+                    session.on_finish = lambda: finish_live_history(session, cleanup_upload)
                     app.state.live_session = session
                     session.start()
                 except Exception:
@@ -565,7 +620,7 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
         finally:
             media.remove_quietly(path)
 
-        return {
+        result = {
             **_envelope(model),
             "detector_schema_version": DETECTOR_SCHEMA_VERSION,
             "class_names": list(CLASS_NAMES),
@@ -579,6 +634,8 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
             "sample_fps": _r(fps_used) if dense else None,
             "frames": frames,
         }
+        store.save_analysis(file.filename, stage1=result)
+        return result
 
     def _detect_batch(model: str, batch: list, info: media.VideoInfo, yolo_settings=None, ppe_confidence=None, device="cpu") -> list[dict]:
         yolo_settings = yolo_settings or {"thresholds": thresholds, "iou": 0.7, "imgsz": 640, "max_det": 300}
@@ -647,7 +704,7 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
                 "probs": {"non_fight": _r(p_non), "fight": _r(p_fight)},
                 "label": STAGE2_CLASS_NAMES[1] if p_fight > active_settings["x3d"]["fight_threshold"] else STAGE2_CLASS_NAMES[0],
             })
-        return {
+        result = {
             **_envelope(config.STAGE2_MODEL),
             "device_requested": device or "auto", "device_used": actual_device,
             "source": _source(info.width, info.height, info),
@@ -663,6 +720,8 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
                 "total_windows": len(windows),
             },
         }
+        store.save_analysis(file.filename, stage2=result)
+        return result
 
     @app.post("/api/pipeline/analyze")
     def pipeline_analyze(
@@ -890,6 +949,7 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
             "response_assembly_ms": round((perf_counter() - response_started) * 1000, 2),
             "total_ms": round((perf_counter() - pipeline_started) * 1000, 2),
         }
+        store.save_analysis(file.filename, stage1=stage1, stage2=stage2, pipeline=response["pipeline"])
         return response
 
     api_methods: dict[str, set[str]] = {}

@@ -14,6 +14,7 @@ import cv2
 from cctv_safety.privacy import YuNetFaceAnonymizer, anonymize
 from cctv_safety.tracking import add_track_ids, summarize_window
 from cctv_safety.stage2 import FRAMES
+from cctv_safety.ppe import assess_ppe
 from webapp import config, media
 from webapp.models import resolve_device
 
@@ -53,6 +54,8 @@ class LiveSession:
                          ("decode", "face", "yolo", "x3d", "preview_encode", "frame_total")}
         self._last_health_at = 0.0
         self.on_finish = None
+        self.on_frame = None
+        self.on_prediction = None
         self._capture_thread = threading.Thread(target=self._capture, daemon=True)
         self._worker_thread = threading.Thread(target=self._process, daemon=True)
         self._finish_thread = threading.Thread(target=self._finish, daemon=True)
@@ -216,6 +219,9 @@ class LiveSession:
                     detections = self.registry.stage1(self.model, [frame], self.settings["yolo"]["thresholds"], options, device=self.device)[0]
                     self._record_timing("yolo", (time.monotonic() - stage_started) * 1000)
                     entry = {"time_s": t, "detections": [{"class_name": d.class_name, "xyxy": list(d.xyxy), "confidence": float(d.confidence)} for d in detections]}
+                    entry["ppe"] = assess_ppe(detections, min(self.settings["yolo"]["thresholds"][name] for name in ("person", "helmet", "vest")))
+                    if self.on_frame:
+                        self.on_frame(entry)
                     recent_entries.append(entry)
                     confidence_by_class = {}
                     for detection in detections:
@@ -243,6 +249,10 @@ class LiveSession:
                         stage_started = time.monotonic()
                         probs = self.registry.stage2([[clip_source[int(i)] for i in indices]], device=self.device)[0]
                         self._record_timing("x3d", (time.monotonic() - stage_started) * 1000)
+                        if self.on_prediction:
+                            self.on_prediction({"start_s": round(first_t, 3), "end_s": round(t, 3),
+                                "label": "fight" if probs[1] > self.settings["x3d"]["fight_threshold"] else "non_fight",
+                                "probs": {"non_fight": float(probs[0]), "fight": float(probs[1])}})
                         self.publish({"type": "x3d", "start_s": round(first_t, 3), "end_s": round(t, 3),
                                       "non_fight": round(probs[0], 4), "fight": round(probs[1], 4),
                                       "label": "fight" if probs[1] > self.settings["x3d"]["fight_threshold"] else "non_fight"})

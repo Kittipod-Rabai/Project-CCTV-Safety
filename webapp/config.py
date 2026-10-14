@@ -19,6 +19,7 @@ STAGE2_MODEL = "x3d_s"
 
 THRESHOLDS_PATH = REPO_ROOT / "configs" / "thresholds.yaml"
 STATIC_DIR = REPO_ROOT / "mockup"
+EVENT_DB_PATH = Path(os.environ.get("CCTV_EVENTS_DB_PATH", REPO_ROOT / "data/local/cctv_safety.sqlite3"))
 
 SCHEMA_VERSION = "1.0"
 DISCLAIMER = (

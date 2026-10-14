@@ -341,6 +341,13 @@ tbody tr:hover{background:var(--panel2)}
 .meta .k{font-size:10.5px;color:var(--muted2);letter-spacing:.4px;text-transform:uppercase}
 .meta .v{font-size:13px;margin-top:3px}
 .modal-f{display:flex;gap:9px;padding:13px 16px;border-top:1px solid var(--line)}
+#rlMask .modal{max-height:calc(100dvh - 48px);display:flex;flex-direction:column}
+#rlMask .modal-h,#rlMask .modal-f{flex-shrink:0}
+#rlDetails{overflow:auto;min-height:0;grid-template-columns:repeat(2,minmax(0,1fr))}
+#rlDetails>div{min-width:0}
+#rlDetails .k,#rlDetails .v{padding:0;white-space:pre-wrap;overflow-wrap:anywhere}
+#rlMask .note,#rlReviewMessage{padding:8px 16px;margin:0;flex-shrink:0}
+@media(max-width:600px){#rlDetails{grid-template-columns:1fr}}
 
 .note{margin-top:16px;font-size:11.5px;color:var(--muted2);line-height:1.7;
   border-left:2px solid var(--line2);padding-left:12px}
@@ -352,16 +359,16 @@ tbody tr:hover{background:var(--panel2)}
 .mock-banner svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;flex:none}
 .mock-banner span{font-weight:500;color:#d6b45c;font-size:11.5px}
 .mock-banner{line-height:1.5}
-body[data-page="analyze"] .chip-mock{display:none}
+body:is([data-page="analyze"],[data-page="logs"]) .chip-mock{display:none}
 /* sidebar system box holds mock numbers: label it, and hide it on the real-API view */
 .sys-mock{font-size:10px;font-weight:700;letter-spacing:.4px;color:#fbbf24;border:1px dashed #7c5e12;
   background:#3a2d0a55;border-radius:5px;padding:1px 7px;margin-bottom:5px;display:inline-block}
-body[data-page="analyze"] .side-foot{display:none}
+body:is([data-page="analyze"],[data-page="logs"]) .side-foot{display:none}
 
 /* ---------- UPLOAD & ANALYZE (real API output) ---------- */
 .chip-real{display:none;font-size:10.5px;letter-spacing:.6px;font-weight:700;color:#4ade80;
   border:1px solid #166534;background:#052e1688;padding:3px 9px;border-radius:6px}
-body[data-page="analyze"] .chip-real{display:inline-block}
+body:is([data-page="analyze"],[data-page="logs"]) .chip-real{display:inline-block}
 #v-analyze [hidden]{display:none!important}
 .az-top{margin-bottom:14px}
 .az-form{padding:14px 16px;display:flex;flex-direction:column;gap:12px}
@@ -721,7 +728,7 @@ body[data-page="analyze"] .chip-real{display:inline-block}
     <button class="nav-item" data-go="logs">
       <svg viewBox="0 0 24 24"><path d="M10.3 3.2 2.6 17a1.8 1.8 0 0 0 1.6 2.7h15.6A1.8 1.8 0 0 0 21.4 17L13.7 3.2a1.9 1.9 0 0 0-3.4 0z"/><path d="M12 9v4.5M12 17h.01"/></svg>
       Alerts / Logs
-      <span class="nav-badge" id="navLogs">12</span>
+      <span class="nav-badge" id="navLogs">—</span>
     </button>
     <button class="nav-item" data-go="analyze">
       <svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 15v4a1.5 1.5 0 0 0 1.5 1.5h13A1.5 1.5 0 0 0 20 19v-4"/></svg>
@@ -904,74 +911,35 @@ body[data-page="analyze"] .chip-real{display:inline-block}
 
     <!-- ---------- LOGS ---------- -->
     <section class="view" id="v-logs">
-      <div class="mock-banner" role="note"><svg viewBox="0 0 24 24"><path d="M12 9v4.5M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>ข้อมูลจำลอง — ไม่ใช่ผลจากโมเดล <span>(ผลจากโมเดลจริงดูได้ที่เมนู Upload &amp; Analyze)</span></div>
+      <div class="mock-banner" role="note">ประวัติผลจากโมเดลจริง · รอตรวจสอบโดยผู้ใช้ · ไม่ใช่เหตุที่ยืนยันแล้ว</div>
       <div class="filters">
-        <div class="field">
-          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-          <input type="text" id="fSearch" placeholder="ค้นหา กล้อง / โซน / รหัสเหตุการณ์…">
-        </div>
-        <div class="field">
-          <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
-          <select id="fDate">
-            <option value="all">ทุกช่วงเวลา</option>
-            <option value="today">วันนี้</option>
-            <option value="yesterday">เมื่อวาน</option>
-            <option value="7d">7 วันล่าสุด</option>
-          </select>
-        </div>
-        <div class="field">
-          <svg viewBox="0 0 24 24"><rect x="2.5" y="7" width="13" height="10" rx="2"/><path d="M15.5 11l6-3.5v9l-6-3.5z"/></svg>
-          <select id="fCam"><option value="all">ทุกกล้อง</option></select>
-        </div>
-        <div class="field">
-          <svg viewBox="0 0 24 24"><path d="M12 3l9 16H3z"/></svg>
-          <select id="fSev">
-            <option value="all">ทุกระดับ</option>
-            <option value="critical">วิกฤต</option>
-            <option value="high">สูง</option>
-            <option value="medium">ปานกลาง</option>
-          </select>
-        </div>
-        <button class="fchip on" data-k="fall" aria-pressed="true"><i style="background:var(--c-fall)"></i>fall</button>
-        <button class="fchip on" data-k="fire_smoke" aria-pressed="true"><i style="background:var(--c-fire)"></i>fire_smoke</button>
-        <button class="fchip on" data-k="ppe" aria-pressed="true"><i style="background:var(--c-ppe)"></i>ppe</button>
-        <button class="fchip on" data-k="fight" aria-pressed="true"><i style="background:var(--c-fight)"></i>fight</button>
-        <button class="btn" type="button" id="btnClearFilters">ล้างตัวกรอง</button>
-        <div class="spacer"></div>
-        <button class="btn" type="button" disabled title="ส่งออก CSV ยังไม่พร้อมใช้งานใน mockup">
-          <svg viewBox="0 0 24 24"><path d="M12 3v12M7 11l5 5 5-5M4 20h16"/></svg>
-          ส่งออก CSV · เร็วๆ นี้
-        </button>
+        <div class="field"><input id="rlSearch" aria-label="ค้นหาประวัติ" placeholder="ค้นหาชื่อไฟล์ / โมเดล / รหัสรายการ"></div>
+        <div class="field"><select id="rlPeriod" aria-label="ช่วงเวลาบันทึก">
+          <option value="all">ทุกช่วงเวลา</option><option value="today">วันนี้</option>
+          <option value="yesterday">เมื่อวาน</option><option value="7d">7 วันล่าสุด</option>
+        </select></div>
+        <div class="field"><select id="rlSource" aria-label="แหล่งไฟล์หรือเซสชัน"><option value="">ทุกแหล่ง</option></select></div>
+        <div class="field"><select id="rlType" aria-label="ประเภทผลตรวจจับ"><option value="">ทุกประเภท</option></select></div>
+        <div class="field"><select id="rlStatus" aria-label="สถานะตรวจสอบ">
+          <option value="">ทุกสถานะ</option><option value="new">รอตรวจสอบ</option>
+          <option value="ack">รับทราบแล้ว</option><option value="closed">ปิดรายการ</option>
+        </select></div>
+        <button class="btn" id="rlClear" type="button">ล้างตัวกรอง</button>
+        <button class="btn" id="rlRefresh" type="button">รีเฟรชประวัติ</button>
       </div>
-
-      <div class="card">
-        <div class="tb-wrap">
-          <table>
-            <thead><tr>
-              <th style="width:56px">ภาพ</th>
-              <th style="width:132px">วัน / เวลา</th>
-              <th>กล้อง</th>
-              <th style="width:132px">เหตุการณ์</th>
-              <th style="width:104px">ความเชื่อมั่น</th>
-              <th style="width:86px">ระดับ</th>
-              <th style="width:104px">สถานะ</th>
-              <th style="width:92px">ผู้รับผิดชอบ</th>
-            </tr></thead>
-            <tbody id="logBody"></tbody>
-          </table>
-          <div class="empty" id="logEmpty" style="display:none">ไม่พบเหตุการณ์ที่ตรงกับเงื่อนไข</div>
-        </div>
-        <div class="pager">
-          <span class="info" id="pgInfo"></span>
-          <div class="spacer"></div>
-          <div style="display:flex;gap:6px" id="pgBtns"></div>
-        </div>
-      </div>
-
-      <p class="note">
-        ตารางนี้ใช้ข้อมูลจำลอง 90 รายการที่สุ่มขึ้นในเบราว์เซอร์ — ตัวกรอง การแบ่งหน้า และหน้ารายละเอียดใช้งานได้จริง
-        เพื่อให้เห็นภาพ flow ก่อนต่อ API จริง (คลิกที่แถวเพื่อดูรายละเอียด)
-      </p>
+      <div id="rlMessage" role="status" aria-live="polite"></div>
+      <div class="card"><div class="tb-wrap"><table>
+        <thead><tr><th>รหัส / เวลาบันทึก</th><th>แหล่งไฟล์ / เซสชัน</th><th>ผลตรวจจับ / โมเดล</th>
+          <th>เวลาในวิดีโอ</th><th>คะแนนสูงสุด</th><th>Observations</th><th>สถานะตรวจสอบ</th><th>รายละเอียด</th></tr></thead>
+        <tbody id="rlBody"></tbody>
+      </table><div class="empty" id="rlEmpty" hidden>ยังไม่มีผลตรวจจับที่ตรงกับตัวกรอง</div></div>
+      <div class="pager"><span id="rlInfo" class="info"></span><div class="spacer"></div>
+        <button class="pg" id="rlPrev" type="button" aria-label="หน้าก่อนหน้า" title="หน้าก่อนหน้า">‹</button>
+        <button class="pg" id="rlNext" type="button" aria-label="หน้าถัดไป" title="หน้าถัดไป">›</button>
+      </div></div>
+      <p class="note">บันทึกลงฐานข้อมูลในเครื่อง · เวลาบันทึกแสดงตาม Asia/Bangkok และแยกจากเวลาในวิดีโอ
+        · รวมประเภทเดียวกันต่อรอบวิเคราะห์/เซสชัน · Observations ไม่ใช่จำนวนคนหรือจำนวนเหตุจริง
+        · คะแนน PPE เป็นคะแนน person ที่ใช้ประกอบกฎ ไม่ใช่ความน่าจะเป็นว่าไม่สวมอุปกรณ์</p>
     </section>
 
     <!-- ---------- UPLOAD & ANALYZE (real inference via API; logic in analyze.js) ---------- -->
@@ -1173,6 +1141,20 @@ body[data-page="analyze"] .chip-real{display:inline-block}
   </main>
 </div>
 
+<div class="mask" id="rlMask" role="dialog" aria-modal="true" aria-labelledby="rlTitle">
+  <div class="modal"><div class="modal-h"><h3 id="rlTitle">รายละเอียดผลตรวจจับ</h3>
+    <button class="x" id="rlClose" aria-label="ปิดรายละเอียดประวัติ" type="button">×</button></div>
+    <div id="rlDetails" class="meta"></div>
+    <p class="note">สถานะนี้ใช้ติดตามการตรวจสอบ ไม่ใช่การยืนยันว่าเหตุการณ์เกิดขึ้นจริง · ไม่มีภาพหรือคลิปเก็บในประวัติ</p>
+    <div id="rlReviewMessage" role="status" aria-live="polite"></div>
+    <div class="modal-f">
+      <button class="btn" id="rlReopen" type="button">รอตรวจสอบ</button>
+      <button class="btn primary" id="rlAck" type="button">รับทราบ</button>
+      <button class="btn" id="rlClosed" type="button">ปิดรายการ</button>
+    </div>
+  </div>
+</div>
+
 <!-- ================= MODAL ================= -->
 <div class="mask" id="mask">
   <div class="modal">
@@ -1253,7 +1235,7 @@ const fmtD  = d => pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+String(d.getFull
 const PAGES = {
   dashboard:['ภาพรวมระบบ','สรุปสถานะกล้องและสถิติเหตุการณ์'],
   live:     ['Live CCTV Monitoring','ภาพสดพร้อมผลตรวจจับ 4 เหตุการณ์แบบเรียลไทม์'],
-  logs:     ['Alert / Logs','ประวัติการแจ้งเตือนเหตุการณ์ย้อนหลัง'],
+  logs:     ['ประวัติผลตรวจจับ','ผลจากโมเดลจริง · รอตรวจสอบโดยผู้ใช้'],
   analyze:  ['Upload & Analyze','วิเคราะห์ภาพ/วิดีโอด้วยโมเดลจริงผ่าน API (ต้นแบบ pilot)']
 };
 document.querySelectorAll('[data-go]').forEach(b=>{
@@ -1510,90 +1492,7 @@ function pushFeed(){
 for(let i=0;i<6;i++) pushFeed();
 setInterval(pushFeed, 4200);
 
-/* ============ LOGS ============ */
-fCam.innerHTML = '<option value="all">ทุกกล้อง</option>' +
-  CAMS.map(c=>`<option value="${c.id}">${c.id} · ${c.zone}</option>`).join('');
-
-let page=1, PER=10;
-const active = new Set(Object.keys(CLS));
-document.querySelectorAll('.fchip').forEach(ch=>{
-  ch.addEventListener('click',()=>{
-    const k=ch.dataset.k;
-    if(active.has(k)){active.delete(k);ch.classList.remove('on');}
-    else{active.add(k);ch.classList.add('on');}
-    ch.setAttribute('aria-pressed',String(active.has(k)));
-    page=1; render();
-  });
-});
-[fSearch,fDate,fCam,fSev].forEach(e=>e.addEventListener('input',()=>{page=1;render();}));
-btnClearFilters.addEventListener('click',()=>{
-  fSearch.value=''; fDate.value='all'; fCam.value='all'; fSev.value='all';
-  active.clear();
-  document.querySelectorAll('.fchip').forEach(ch=>{active.add(ch.dataset.k);ch.classList.add('on');ch.setAttribute('aria-pressed','true');});
-  page=1; render(); fSearch.focus();
-});
-
-function filtered(){
-  const q = fSearch.value.trim().toLowerCase();
-  const now = new Date(); const day0 = new Date(now.getFullYear(),now.getMonth(),now.getDate());
-  return LOGS.filter(l=>{
-    if(!active.has(l.cls)) return false;
-    if(fCam.value!=='all' && l.cam!==fCam.value) return false;
-    if(fSev.value!=='all' && l.sev!==fSev.value) return false;
-    if(fDate.value==='today'     && l.t < day0) return false;
-    if(fDate.value==='yesterday' && !(l.t >= day0-864e5 && l.t < day0)) return false;
-    if(fDate.value==='7d'        && l.t < now-7*864e5) return false;
-    if(q && !(l.cam+' '+l.zone+' '+l.id+' '+l.cls).toLowerCase().includes(q)) return false;
-    return true;
-  });
-}
-function thumbHTML(l){
-  const [x,y,w,h] = l.box;
-  return `<div class="thumb"><div style="position:absolute;inset:0;background:
-    linear-gradient(180deg,#232b35 0 46%,#161c24 46% 100%)"></div>
-    <div class="bb" style="--c:${CLS[l.cls].c};left:${x*100}%;top:${y*100}%;width:${w*100}%;height:${h*100}%"></div></div>`;
-}
-function render(){
-  const rows = filtered();
-  const pages = Math.max(1, Math.ceil(rows.length/PER));
-  page = Math.min(page, pages);
-  const slice = rows.slice((page-1)*PER, page*PER);
-
-  logBody.innerHTML = slice.map(l=>`
-    <tr data-id="${l.id}">
-      <td>${thumbHTML(l)}</td>
-      <td><div class="mono" style="color:var(--text)">${fmtT(l.t)}</div><div class="mono">${fmtD(l.t)}</div></td>
-      <td><div>${l.cam}</div><div style="font-size:11px;color:var(--muted2)">${l.zone}</div></td>
-      <td><span class="tag t-${l.cls}"><i></i>${l.cls}</span></td>
-      <td><div class="conf"><span class="mono">${l.conf.toFixed(2)}</span>
-          <span class="track"><i style="width:${l.conf*100}%;background:${CLS[l.cls].c}"></i></span></div></td>
-      <td><span class="sev sev-${l.sev}">${SEV_TH[l.sev]}</span></td>
-      <td><span class="st st-${l.status}">${l.status==='new'?'ใหม่':l.status==='ack'?'รับทราบแล้ว':'ปิดเคส'}</span></td>
-      <td style="color:var(--muted)">${l.by}</td>
-    </tr>`).join('');
-  logEmpty.style.display = rows.length ? 'none' : 'block';
-
-  pgInfo.textContent = rows.length
-    ? `แสดง ${(page-1)*PER+1}–${Math.min(page*PER,rows.length)} จาก ${rows.length} เหตุการณ์`
-    : 'ไม่มีข้อมูล';
-
-  let b = `<button class="pg" ${page===1?'disabled':''} data-p="${page-1}">‹</button>`;
-  for(let i=1;i<=pages;i++){
-    if(pages>7 && i>2 && i<pages-1 && Math.abs(i-page)>1){
-      if(i===3) b += `<span class="pg" style="border:none;background:none">…</span>`;
-      continue;
-    }
-    b += `<button class="pg ${i===page?'on':''}" data-p="${i}">${i}</button>`;
-  }
-  b += `<button class="pg" ${page===pages?'disabled':''} data-p="${page+1}">›</button>`;
-  pgBtns.innerHTML = b;
-  pgBtns.querySelectorAll('[data-p]').forEach(x=>x.addEventListener('click',()=>{
-    page = +x.dataset.p; render();
-    document.querySelector('.tb-wrap').scrollTop = 0;
-  }));
-  logBody.querySelectorAll('tr').forEach(tr=>tr.addEventListener('click',()=>openModal(tr.dataset.id)));
-}
-render();
+/* Real history is loaded by logs.js; Dashboard and demo monitors keep mock data. */
 
 /* ============ MODAL ============ */
 function openModal(id){
@@ -1602,7 +1501,7 @@ function openModal(id){
   const hit = s.boxes.find(b=>b.cls===l.cls);
   const P = v => parseFloat(v)/100;
   const [x,y,w,h] = hit ? [P(hit.l),P(hit.t),P(hit.w),P(hit.h)] : l.box;
-  mTitle.textContent = `${l.id} · ${CLS[l.cls].th}`;
+  mTitle.textContent = `ข้อมูลจำลอง · ${l.id} · ${CLS[l.cls].th}`;
   mSnap.innerHTML = `
     <div class="scene ${s.grade}" style="position:absolute;inset:0">${s.html}</div>
     <div class="grain"></div><div class="scan"></div><div class="vig"></div>
@@ -1631,10 +1530,11 @@ mask.addEventListener('click',e=>{if(e.target===mask) mask.classList.remove('on'
 document.addEventListener('keydown',e=>{if(e.key==='Escape') mask.classList.remove('on')});
 
 /* badges */
-navLogs.textContent = LOGS.filter(l=>l.status==='new').length;
+navLogs.textContent = '—';
 navLive.textContent = SCENES.filter(s=>s.boxes.length).length;
 </script>
 <!-- Upload & Analyze: real API calls (no mock data) -->
+<script src="logs.js?v=20261014-history-2"></script>
 <script src="analyze.js?v=20261014-pipeline-live"></script>
 <script src="live.js?v=20261014-pipeline-live"></script>
 <script src="live-flow.js?v=20261014-pipeline-live"></script>

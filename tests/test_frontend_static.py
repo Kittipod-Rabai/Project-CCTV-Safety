@@ -112,9 +112,19 @@ def test_index_loads_analyze_js(tree):
     assert any(s.split("?")[0].rsplit("/", 1)[-1] == "analyze.js" for s in srcs), srcs
 
 
-@pytest.mark.parametrize("view_id", ["v-dashboard", "v-live", "v-logs"])
+@pytest.mark.parametrize("view_id", ["v-dashboard", "v-live"])
 def test_mock_views_show_mock_data_banner(tree, view_id):
     assert MOCK_TEXT in by_id(tree, view_id).all_text()
+
+
+def test_history_view_uses_real_api_without_mock_rows(tree):
+    view = by_id(tree, "v-logs")
+    assert "ประวัติผลจากโมเดลจริง" in view.all_text()
+    assert "ไม่ใช่เหตุที่ยืนยันแล้ว" in view.all_text()
+    assert by_id(tree, "rlBody").children == []
+    script = (MOCKUP / "logs.js").read_text(encoding="utf-8")
+    assert "Math.random" not in script and "innerHTML" not in script
+    assert "/api/logs" in script and "method:'PATCH'" in script
 
 
 def test_real_model_badge_is_inside_analyze_view_and_hidden_by_default(tree):

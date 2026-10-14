@@ -11,6 +11,7 @@ runs/
 dataset/
 data/raw/
 data/processed/
+data/local/
 reports/
 configs/datasets.local.yaml
 .env

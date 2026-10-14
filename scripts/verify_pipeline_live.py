@@ -42,6 +42,7 @@ def run_case(device, model):
     torch.set_num_threads(2)
     from fastapi.testclient import TestClient
     from webapp.api import create_app
+    from webapp.event_store import EventStore
     from webapp.models import runtime_status
     from starlette.websockets import WebSocketDisconnect
 
@@ -49,7 +50,8 @@ def run_case(device, model):
         raise RuntimeError("CUDA unavailable: GPU acceptance remains unverified")
     rows = selected_clips()
     result = {"device": device, "model": model, "runtime": runtime_status(), "pipelines": [], "replays": []}
-    with TestClient(create_app()) as client:
+    # Verification history belongs to the report, never the user's default database.
+    with TestClient(create_app(event_store=EventStore(REPORT / f"{device}_{model}.sqlite3"))) as client:
         for row in rows:
             path = ROOT / row["relative_path"]
             started = time.perf_counter()

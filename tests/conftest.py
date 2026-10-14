@@ -74,3 +74,10 @@ def make_video(tmp_path):
         return write_video(tmp_path / name, **kwargs)
 
     return _make
+
+
+@pytest.fixture(autouse=True)
+def isolate_observation_database(tmp_path, monkeypatch):
+    # API/model fixtures must never insert synthetic test observations in user history.
+    from webapp import config
+    monkeypatch.setattr(config, "EVENT_DB_PATH", tmp_path / "history.sqlite3")

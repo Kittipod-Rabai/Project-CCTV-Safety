@@ -408,3 +408,52 @@ detection can miss faces; this is not a guarantee of complete de-identification.
 For videos the browser cannot play, Upload & Analyze calls Stage 1 and Stage 2
 sequentially to respect the single inference slot. It labels the result as
 separate analyses with frame previews, not a combined shadow-mode pipeline.
+
+## 7. Local observation history (2026-10-14)
+
+SQLite history defaults to `data/local/cctv_safety.sqlite3` (git-ignored).
+`CCTV_EVENTS_DB_PATH` can select another local file. Schema version 1 is created
+automatically; an unsupported version is rejected rather than rewritten. Run
+one backend process per database; startup marks unfinished `running` sessions as
+`interrupted`. This is a local pilot without user authentication.
+
+Successful Stage 1/2 and combined analysis requests record a new run atomically
+before returning success. A combined request records both stages under one run.
+Separate fallback requests create separate runs. Live records observations while
+processing, retains partial results on failure, and records its final run state.
+A write failure returns 503 `storage_unavailable` for HTTP analysis, or ends Live
+with `error`; inference locks and temporary uploads are still released.
+
+History stores filenames (not client filesystem paths), opaque run/session IDs,
+source type, model, UTC recording/update times, video start/end seconds, maximum
+score, observation count, a representative box/rule/probability detail, and review
+status. RTSP labels are always `RTSP stream`; URLs and credentials are not stored.
+No images, videos or base64 previews are stored. Image timestamps are null.
+
+There is one observation row per `(run_id, event_type, model)`. Count means boxes
+for detector classes, person/rule observations for derived PPE, and evaluated
+windows for X3D. Start/end span the first and last observations, not necessarily
+continuous detection. Scores for derived PPE are person confidence, not a
+calibrated probability of missing PPE. Raw X3D labels (including Non-fight) are
+retained; combined Fall/Fight conflicts additionally have a review row. These
+rows are model evidence, not confirmed incidents or notification events.
+
+- `GET /api/logs`: query `page` (>=1), `page_size` (1..100; default 10), `q`
+  (up to 200 characters), `run_id`, `event_type`, `status` (`new`, `ack`, `closed`),
+  `period` (`all`, `today`, `yesterday`, `7d`). Periods use recording time in
+  Asia/Bangkok, independent of video time. Returns `items`, `total`, `page`,
+  `page_size`, `pages`, and unfiltered `pending_total`. Sort is stable by recording
+  time and row ID descending; an excessive page is clamped to the last page.
+- `GET /api/logs/sources`: latest 100 analysis runs, including runs with no
+  observations. Older rows remain searchable through the history query.
+- `GET /api/logs/{event_id}`: detail plus `status_history`; missing ID returns 404.
+- `PATCH /api/logs/{event_id}` with `{"status":"ack"}` (or `new`/`closed`):
+  saves review status and appends old/new status and UTC time. Repeating the same
+  status is idempotent. Reopening is allowed. New observations in an active run
+  update its summary without resetting the user's chosen review status.
+
+Review status does not confirm a safety incident. No named assignee/account is
+fabricated. Invalid parameters return the existing 400 error envelope. Storage
+unavailability is explicit; clients must not replace missing history with mock
+rows. History has no automatic deletion or retroactive import of the old 90
+mock rows. Browser history refreshes on opening the Logs page or using Refresh.
