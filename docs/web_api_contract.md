@@ -412,8 +412,9 @@ separate analyses with frame previews, not a combined shadow-mode pipeline.
 ## 7. Local observation history (2026-10-14)
 
 SQLite history defaults to `data/local/cctv_safety.sqlite3` (git-ignored).
-`CCTV_EVENTS_DB_PATH` can select another local file. Schema version 1 is created
-automatically; an unsupported version is rejected rather than rewritten. Run
+`CCTV_EVENTS_DB_PATH` can select another local file. Schema version 2 is created
+automatically; version 1 is upgraded by adding notifications without replacing
+history or review status. Unsupported versions are rejected rather than rewritten. Run
 one backend process per database; startup marks unfinished `running` sessions as
 `interrupted`. This is a local pilot without user authentication.
 
@@ -500,3 +501,63 @@ Dashboard refreshes on navigation, period selection, manual refresh, and every
 refresh retains the visible snapshot until its replacement arrives; failures
 clear the affected values and display an error, never a fabricated zero or
 mock result. History and Live failures are displayed independently.
+
+## 9. In-page suspected-event notifications (2026-10-14)
+
+Notifications are persisted alongside observations in schema 2. New and upgraded
+databases use the same additive schema; version 1 history is preserved and is
+not automatically backfilled with notifications.
+
+The current incoming observation must meet a separate notification score floor:
+Fall, Fire, Smoke, derived no_helmet/no_vest, and Fall/Fight conflict >= 0.5;
+Fight >= 0.7. Person, Helmet, Vest and Non-fight never notify. These are fixed
+pilot heuristics in `webapp/config.py`, not calibrated incident probabilities.
+PPE scores remain person confidence used by the rule. A historical maximum
+score cannot trigger when the current result is below the notification floor.
+
+The gate allows at most one notification per observation row (run/type/model)
+every 30 seconds of UTC processing/recording time, not video time. It is checked
+under the observation write transaction, so concurrent workers share the same
+gate. Notification and observation writes commit or roll back together. The
+last notification time persists across backend restarts. Acknowledged or closed
+observations do not create further notifications until reopened and followed
+by a new qualifying result, still respecting cooldown.
+
+This gate does not identify unique incidents or people. A continuous result
+may notify again after 30 seconds, and a newly analyzed file/run has a new gate.
+Different model/type summaries may each notify. Uploads processed quickly can
+produce one notice per summary even when the video contains several episodes.
+Single-frame false positives can trigger a notice; this is not an evaluated
+alarm-reduction or incident-clustering system.
+
+`GET /api/notifications` accepts optional `after_id` (0..9223372036854775807)
+and `limit` (1..50, default 20). Invalid parameters return 400; storage failures
+return 503 `storage_unavailable`.
+
+- Without `after_id`, returns the latest `limit` items, newest ID first, and
+  `cursor` equal to the latest stored notification ID (0 when empty).
+- With `after_id`, returns up to `limit` newer items in ascending ID order.
+  `cursor` advances to the last returned ID, and `has_more` indicates another
+  batch. With no newer rows, `items` is empty and cursor stays at the latest ID.
+- If `after_id` is ahead of the latest stored ID, `reset` is true and a fresh
+  latest-items snapshot is returned, allowing recovery after a database reset.
+- Items include notification `id`, `observation_id`, `created_at`, triggering
+  `score` and video `start_s`/`end_s`, plus joined `run_id`, `event_type`, `model`,
+  sanitized `source_label`, `source_type`, and current observation `status`.
+  No images, clips, client paths or RTSP credentials are added.
+- The response also includes unfiltered `total`, `has_more`, `reset`,
+  `cooldown_s`, and `min_scores`. Reads use one SQLite snapshot.
+
+The browser polls every two seconds while the document is visible, follows
+cursor batches, and retains the latest 20 notices in its panel. The button count
+is total persisted notices, not unread or confirmed incidents. Opening the panel
+refreshes current review status. New pending notices after initialization can
+show one popup at a time; an initial snapshot/reload does not replay old popups.
+The popup hides after 12 seconds, but the record remains in the panel/database.
+Hiding it does not acknowledge the history item. Both popup and panel buttons
+open the associated observation's real detail in Logs.
+
+Failures show an error and an unknown count; any retained rows are explicitly
+labelled as previously read data. Recovery reloads the latest snapshot. This is
+local in-page UI only: no system/browser Push, background delivery while the
+page is closed, sound, email, SMS, or external messaging integration.

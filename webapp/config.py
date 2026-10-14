@@ -21,6 +21,13 @@ THRESHOLDS_PATH = REPO_ROOT / "configs" / "thresholds.yaml"
 STATIC_DIR = REPO_ROOT / "mockup"
 EVENT_DB_PATH = Path(os.environ.get("CCTV_EVENTS_DB_PATH", REPO_ROOT / "data/local/cctv_safety.sqlite3"))
 
+# In-page suspected-event notifications; scores are pilot heuristics, not calibrated risk.
+NOTIFICATION_COOLDOWN_S = 30
+NOTIFICATION_MIN_SCORES = {
+    "fall": 0.5, "fire": 0.5, "smoke": 0.5, "no_helmet": 0.5, "no_vest": 0.5,
+    "fight": 0.7, "review_fall_fight_conflict": 0.5,
+}
+
 SCHEMA_VERSION = "1.0"
 DISCLAIMER = (
     "ต้นแบบเพื่อการศึกษา (pilot) ฝึกด้วยชุดข้อมูลสาธารณะเท่านั้น ไม่ใช่ระบบใช้งานจริง "

@@ -48,7 +48,7 @@ Stage 1 ใช้โมเดลตรวจจับ 6 คลาสเชิง
 - Experiment: YOLOv8n เป็น baseline และ YOLOv8s เป็นตัวเปรียบเทียบภายใต้ config เดียวกัน
 - Recorded pilot runtime: Kaggle GPU. Colab remains an optional reproducibility workflow.
 - หน้า Upload & Analyze เป็นเว็บต้นแบบ FastAPI สำหรับเรียกโมเดลจริงในเครื่อง;
-  Live replay เรียกโมเดลจริง, Alert / Logs บันทึกผลลง SQLite และ Dashboard สรุปประวัติจริงแล้ว; จอมอนิเตอร์ตัวอย่างยังเป็นข้อมูลจำลอง
+  Live replay เรียกโมเดลจริง, Alert / Logs บันทึกผลลง SQLite และ Dashboard สรุปประวัติจริงแล้ว พร้อมแจ้งเหตุสงสัยภายในเว็บและช่วงพักลดการแจ้งซ้ำ; จอมอนิเตอร์ตัวอย่างยังเป็นข้อมูลจำลอง
 
 ---
 

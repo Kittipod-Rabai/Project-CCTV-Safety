@@ -658,6 +658,14 @@ body:is([data-page="analyze"],[data-page="logs"],[data-page="dashboard"]) #navLi
 .db-live,.db-latest{padding:6px 16px 16px;display:grid;gap:10px;overflow-wrap:anywhere}.db-live p{font-size:12px;margin:0;line-height:1.6}
 .db-result{padding:10px 0;border-bottom:1px solid var(--line);font-size:12px;line-height:1.7}.db-result small{display:block;color:var(--muted)}
 .db-session-state{font-size:20px!important;letter-spacing:0!important}.db-empty{font-size:12px;color:var(--muted)}
+/* In-page suspected-event notifications */
+.nt-toggle{white-space:nowrap}.nt-toggle span{font-family:var(--mono);color:var(--accent)}
+.nt-panel{position:fixed;top:66px;right:16px;width:min(440px,calc(100vw - 32px));max-height:calc(100vh - 90px);overflow:auto;z-index:40;padding-bottom:14px;box-shadow:0 18px 60px #0009}
+.nt-panel h2{font-size:15px}.nt-caption{font-size:12px;color:var(--muted);line-height:1.6;margin:12px 16px}.nt-panel>#ntRefresh{margin:0 16px 12px}
+.nt-list{padding:0 16px}.nt-item{padding:12px 0;border-top:1px solid var(--line);overflow-wrap:anywhere;font-size:12px;line-height:1.7}.nt-item small{display:block;color:var(--muted);margin-bottom:8px}.nt-empty{font-size:12px;color:var(--muted)}
+.nt-toast{position:fixed;bottom:18px;right:18px;width:min(430px,calc(100vw - 36px));z-index:40;padding:16px;border-color:var(--warn);box-shadow:0 8px 36px #0009;overflow-wrap:anywhere}
+.nt-toast p{font-size:13px;line-height:1.6;margin-bottom:12px}.nt-toast>div{display:flex;gap:8px;flex-wrap:wrap}
+#ntPanel[hidden],#ntToast[hidden]{display:none}
 </style>
 <style>
 /* Live page desktop proportions: preview first, results beside it, controls on one readable row. */
@@ -778,6 +786,7 @@ body:is([data-page="analyze"],[data-page="logs"],[data-page="dashboard"]) #navLi
       <div class="spacer"></div>
       <span class="chip-mock">MOCKUP · ข้อมูลจำลอง</span>
       <span class="chip-real">หน้าเรียก API จริง · pilot</span>
+      <button class="btn nt-toggle" id="ntToggle" type="button" aria-controls="ntPanel" aria-expanded="false">เหตุสงสัย <span id="ntCount" title="จำนวนรายการแจ้งทั้งหมดที่บันทึก">—</span></button>
       <span class="clock" id="clock">--:--:--</span>
       <div class="avatar">OP</div>
     </header>
@@ -1108,6 +1117,19 @@ body:is([data-page="analyze"],[data-page="logs"],[data-page="dashboard"]) #navLi
   </main>
 </div>
 
+<section id="ntPanel" class="nt-panel card" hidden aria-labelledby="ntTitle">
+  <div class="card-h"><h2 id="ntTitle">แจ้งเหตุสงสัยภายในเว็บ</h2><button class="btn" id="ntClose" type="button" aria-label="ปิดแผงแจ้งเตือน">ปิด</button></div>
+  <p class="nt-caption">เหตุสงสัยจากโมเดล ต้องให้ผู้ใช้ตรวจสอบ ไม่ใช่การยืนยันเหตุ</p>
+  <p id="ntMessage" class="nt-caption" role="status" aria-live="polite">กำลังอ่านการแจ้งเตือน…</p>
+  <p id="ntRule" class="nt-caption">ใช้เงื่อนไขเหตุสงสัยจาก backend</p>
+  <button class="btn" id="ntRefresh" type="button">รีเฟรชรายการแจ้ง</button>
+  <div id="ntList" class="nt-list"></div>
+</section>
+<aside id="ntToast" class="nt-toast card" hidden aria-label="การแจ้งเหตุสงสัยใหม่">
+  <p id="ntToastText" role="status" aria-live="polite" aria-atomic="true"></p>
+  <div><button class="btn primary" id="ntToastOpen" type="button">เปิดประวัติผลที่แจ้ง</button><button class="btn" id="ntToastClose" type="button" aria-label="ซ่อนข้อความแจ้งเหตุสงสัย">ซ่อน</button></div>
+</aside>
+
 <div class="mask" id="rlMask" role="dialog" aria-modal="true" aria-labelledby="rlTitle">
   <div class="modal"><div class="modal-h"><h3 id="rlTitle">รายละเอียดผลตรวจจับ</h3>
     <button class="x" id="rlClose" aria-label="ปิดรายละเอียดประวัติ" type="button">×</button></div>
@@ -1425,7 +1447,8 @@ navLive.textContent = SCENES.filter(s=>s.boxes.length).length;
 </script>
 <!-- Upload & Analyze: real API calls (no mock data) -->
 <script src="dashboard.js?v=20261014-dashboard"></script>
-<script src="logs.js?v=20261014-history-2"></script>
+<script src="logs.js?v=20261014-notifications"></script>
+<script src="notifications.js?v=20261014-notifications"></script>
 <script src="analyze.js?v=20261014-pipeline-live"></script>
 <script src="live.js?v=20261014-pipeline-live"></script>
 <script src="live-flow.js?v=20261014-pipeline-live"></script>

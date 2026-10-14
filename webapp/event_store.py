@@ -10,6 +10,8 @@ import sqlite3
 import threading
 import uuid
 
+from webapp import config
+
 UTC = timezone.utc
 BANGKOK = timezone(timedelta(hours=7))
 STATUSES = {"new", "ack", "closed"}
@@ -75,7 +77,7 @@ class EventStore:
             with self._schema_lock:
                 if not self._ready:
                     version = con.execute("PRAGMA user_version").fetchone()[0]
-                    if version not in (0, 1):
+                    if version not in (0, 1, 2):
                         raise StorageUnavailable("Unsupported observation database version")
                     con.execute("PRAGMA journal_mode=WAL")
                     con.executescript("""
@@ -96,7 +98,13 @@ class EventStore:
                         CREATE TABLE IF NOT EXISTS observation_changes (
                             id INTEGER PRIMARY KEY, observation_id INTEGER NOT NULL REFERENCES observations(id),
                             previous_status TEXT NOT NULL, status TEXT NOT NULL, changed_at TEXT NOT NULL);
-                        PRAGMA user_version=1;
+                        CREATE TABLE IF NOT EXISTS notifications (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            observation_id INTEGER NOT NULL REFERENCES observations(id),
+                            created_at TEXT NOT NULL, score REAL NOT NULL,
+                            start_s REAL, end_s REAL);
+                        CREATE INDEX IF NOT EXISTS notifications_observation ON notifications(observation_id,id DESC);
+                        PRAGMA user_version=2;
                     """)
                     self._ready = True
             with con:
@@ -139,6 +147,44 @@ class EventStore:
                 details=CASE WHEN excluded.score>=observations.score THEN excluded.details ELSE observations.details END
                 """, (run_id,item["event_type"],model,timestamp,timestamp,item.get("start_s"),item.get("end_s"),
                       score,item["count"],json.dumps(item.get("details",{}), ensure_ascii=False)))
+            EventStore._notify(con, run_id, model, item, timestamp)
+
+    @staticmethod
+    def _notify(con, run_id, model, item, timestamp):
+        threshold = config.NOTIFICATION_MIN_SCORES.get(item["event_type"])
+        if threshold is None or float(item["score"]) < threshold:
+            return
+        row = con.execute("SELECT id,status FROM observations WHERE run_id=? AND event_type=? AND model=?",
+                          (run_id, item["event_type"], model)).fetchone()
+        if row["status"] != "new":
+            return  # Human acknowledgement/closure silences this summary until reopened.
+        last = con.execute("SELECT created_at FROM notifications WHERE observation_id=? ORDER BY id DESC LIMIT 1",
+                           (row["id"],)).fetchone()
+        if last and (datetime.fromisoformat(timestamp) - datetime.fromisoformat(last[0])).total_seconds() < config.NOTIFICATION_COOLDOWN_S:
+            return
+        # Called after the observation UPSERT has acquired the transaction's write lock:
+        # concurrent workers cannot both pass this gate before either inserts.
+        con.execute("INSERT INTO notifications(observation_id,created_at,score,start_s,end_s) VALUES (?,?,?,?,?)",
+                    (row["id"], timestamp, float(item["score"]), item.get("start_s"), item.get("end_s")))
+
+    def notifications(self, *, after_id=None, limit=20):
+        with self.connection() as con:
+            con.execute("BEGIN")
+            total, latest_id = con.execute("SELECT COUNT(*),COALESCE(MAX(id),0) FROM notifications").fetchone()
+            reset = after_id is not None and after_id > latest_id
+            if after_id is None or reset:
+                where, params, order = "", [limit], "DESC"
+            else:
+                where, params, order = " WHERE n.id>?", [after_id, limit], "ASC"
+            rows = con.execute("SELECT n.*,o.event_type,o.model,o.status,r.source_label,r.source_type,o.run_id "
+                               "FROM notifications n JOIN observations o ON o.id=n.observation_id "
+                               "JOIN analysis_runs r ON r.id=o.run_id" + where +
+                               " ORDER BY n.id " + order + " LIMIT ?", params).fetchall()
+            cursor = rows[-1]["id"] if after_id is not None and not reset and rows else latest_id
+        return {"items": [dict(row) for row in rows], "total": total, "cursor": cursor,
+                "has_more": cursor < latest_id, "reset": reset,
+                "cooldown_s": config.NOTIFICATION_COOLDOWN_S,
+                "min_scores": config.NOTIFICATION_MIN_SCORES}
 
     def observe(self, run_id, model, observations):
         with self.connection() as con:

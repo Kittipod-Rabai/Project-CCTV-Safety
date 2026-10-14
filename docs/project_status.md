@@ -16,7 +16,7 @@ their historical statements are not the current project status.
   person in each X3D window. Experimental IoU/centre-distance tracking and
   proximity/motion candidate signals are now included for comparison. X3D
   still evaluates every window so missed triggers remain visible. Production
-  tracking, calibrated multi-signal triggers, event/cooldown logic, and
+  tracking, calibrated multi-signal triggers, incident-level clustering, and
   end-to-end evaluation remain open. The CLI `scripts/infer.py` remains
   YOLO-only.
 - **Web prototype (2026-10-02):** a demo-only Upload & Analyze page. It runs
@@ -80,7 +80,7 @@ CCTV. Do not describe this model as a production-ready Fight detector.
 - Weights are not in Git. Put `YOLOv8n_best.pt`, `YOLOv8s_best.pt` and
   `X3D-S_best.pt` in `weights/`, then run
   `python -m uvicorn webapp.api:app --port 8000`.
-- Feature update (2026-10-14): Upload & Analyze and the Live replay pilot run real inference. Alert / Logs now reads persisted SQLite model observations and saves review status. Dashboard now aggregates real SQLite summaries and reads the current single-session Live API; only the separate demo camera monitors remain mock data. See `presentation/dashboard-verification.md`; this does not establish incident accuracy or production readiness.
+- Feature update (2026-10-14): Upload & Analyze and the Live replay pilot run real inference. Alert / Logs now reads persisted SQLite model observations and saves review status. Dashboard now aggregates real SQLite summaries and reads the current single-session Live API; only the separate demo camera monitors remain mock data. In-page suspected-event notifications now persist in schema 2 with a 30-second per-summary cooldown and links to real history; external delivery remains absent. See `presentation/notifications-verification.md`; this does not establish incident accuracy or production readiness.
 - Spot checks on two real images matched the displayed results to the raw API
   output. They also showed known model errors: smoke predicted indoors, and a
   person and vest predicted on a bus advertisement. This prototype is not

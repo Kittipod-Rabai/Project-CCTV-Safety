@@ -348,6 +348,10 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
     def dashboard(period: Literal["today", "7d", "all"] = "7d"):
         return store.dashboard(period=period)
 
+    @app.get("/api/notifications")
+    def notifications(after_id: int | None = Query(None, ge=0, le=9223372036854775807), limit: int = Query(20, ge=1, le=50)):
+        return store.notifications(after_id=after_id, limit=limit)
+
     @app.get("/api/logs")
     def list_logs(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100),
                   q: str = Query("", max_length=200), status: Literal["new", "ack", "closed"] | None = None,

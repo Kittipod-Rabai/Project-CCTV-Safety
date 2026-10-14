@@ -73,6 +73,7 @@
   async function detail(id) {
     const token = ++detailToken;
     selected = null;
+    $('rlTitle').textContent = 'กำลังอ่าน OBS-'+id;
     $('rlMask').classList.add('on'); $('rlDetails').replaceChildren();
     $('rlReviewMessage').textContent = 'กำลังอ่านรายละเอียด…';
     reviewButtons(true);
@@ -128,5 +129,13 @@
   $('rlNext').addEventListener('click',() => { if (page < pages) {++page; load();} });
   $('rlClear').addEventListener('click',() => { for (const id of controls) $(id).value = id === 'rlPeriod' ? 'all' : ''; page = 1; load(); });
   $('rlRefresh').addEventListener('click',() => load(true));
+  document.addEventListener('cctv:open-observation',ev => {
+    const id = ev.detail?.id;
+    if (!Number.isSafeInteger(id) || id <= 0) return;
+    for (const control of controls) $(control).value = control === 'rlPeriod' ? 'all' : '';
+    page = 1;
+    load(true);
+    detail(id);
+  });
   document.querySelectorAll('[data-go="logs"]').forEach(button => button.addEventListener('click',() => {page = 1; load(true);}));
 }());
