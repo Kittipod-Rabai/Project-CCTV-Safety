@@ -60,5 +60,6 @@
     "max_fight_prob": 0.7915,
     "fight_windows": 1,
     "total_windows": 3
-  }
+  },
+  "settings_revision": 0
 }

@@ -92,7 +92,7 @@ def test_v1_migration_preserves_history_without_backfilling_notifications(tmp_pa
     assert migrated.get(old['id'])['status']=='ack'
     assert len(migrated.get(old['id'])['status_history'])==1
     with sqlite3.connect(path) as con:
-        assert con.execute('PRAGMA user_version').fetchone()[0]==2
+        assert con.execute('PRAGMA user_version').fetchone()[0]==3
     new_run = migrated.begin('new.mp4','upload')
     migrated.observe(new_run,'yolov8n',[observation()])
     assert migrated.notifications()['total']==1

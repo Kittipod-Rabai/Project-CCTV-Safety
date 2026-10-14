@@ -412,9 +412,9 @@ separate analyses with frame previews, not a combined shadow-mode pipeline.
 ## 7. Local observation history (2026-10-14)
 
 SQLite history defaults to `data/local/cctv_safety.sqlite3` (git-ignored).
-`CCTV_EVENTS_DB_PATH` can select another local file. Schema version 2 is created
-automatically; version 1 is upgraded by adding notifications without replacing
-history or review status. Unsupported versions are rejected rather than rewritten. Run
+`CCTV_EVENTS_DB_PATH` can select another local file. Schema version 3 is created
+automatically; versions 1/2 are upgraded by adding notifications/settings without
+replacing history or review status. Unsupported versions are rejected rather than rewritten. Run
 one backend process per database; startup marks unfinished `running` sessions as
 `interrupted`. This is a local pilot without user authentication.
 
@@ -504,9 +504,9 @@ mock result. History and Live failures are displayed independently.
 
 ## 9. In-page suspected-event notifications (2026-10-14)
 
-Notifications are persisted alongside observations in schema 2. New and upgraded
-databases use the same additive schema; version 1 history is preserved and is
-not automatically backfilled with notifications.
+Notifications were introduced in schema 2 and are retained in schema 3 alongside
+observations and saved analysis settings. Upgrades preserve existing history,
+and version 1 history is not automatically backfilled with notifications.
 
 The current incoming observation must meet a separate notification score floor:
 Fall, Fire, Smoke, derived no_helmet/no_vest, and Fall/Fight conflict >= 0.5;
@@ -561,3 +561,59 @@ Failures show an error and an unknown count; any retained rows are explicitly
 labelled as previously read data. Recovery reloads the latest snapshot. This is
 local in-page UI only: no system/browser Push, background delivery while the
 page is closed, sound, email, SMS, or external messaging integration.
+
+## 10. Persisted analysis defaults (2026-10-14)
+
+Schema 3 adds a single `app_settings` row in the existing local SQLite database.
+It stores the complete normalized analysis document, integer revision, and UTC
+update time. Upgrades from schemas 1/2 retain observations, status changes and
+notifications. No record means the project defaults (YOLO thresholds from YAML,
+other defaults from code), revision 0 and null update time; reading defaults does
+not save a settings record. This is one local profile shared by both YOLO models,
+not a user/account-specific preference or a history of settings changes.
+
+`GET /api/settings` returns `analysis_settings`, `revision`, `updated_at`, and
+`defaults` (the unchanged project defaults). `PUT /api/settings` requires exactly
+`{"analysis_settings": { ... }, "revision": N}` with the complete document:
+
+- `yolo.thresholds`: exactly person, helmet, vest, fall, fire, smoke; each 0.01..0.99.
+- `yolo.iou`: 0.1..0.95; `yolo.imgsz`: integer 320/480/640/800/960/1280;
+  `yolo.max_det`: integer 1..1000.
+- `x3d.fight_threshold`: 0.05..0.95.
+- `tracking.proximity_diagonals`: 0.01..0.5;
+  `tracking.motion_diagonals_per_s`: 0.01..2;
+  `tracking.max_track_gap_s`: 0.1..3.
+
+Missing or unknown keys, strings/booleans in numeric fields, nonfinite numbers,
+fractional integer fields and out-of-range values return 400 without changing
+the saved document/revision. Revision must be an integer >=0 and less than
+9223372036854775807. Writes use a transaction and compare the supplied revision
+with the current one. A stale revision returns 409 `settings_conflict`; reload
+before saving another edit. A successful save returns the same shape as GET
+with revision incremented by one and a new update time. Saving `defaults` is the
+versioned reset operation; simply filling the browser form does not save it.
+
+Stage 1, Stage 2, Pipeline and both Live start endpoints read saved defaults once
+at request/session start. Optional existing per-request `analysis_settings`
+overrides are merged over that snapshot, including individual class thresholds.
+Omitting that field uses saved values. Overrides are not persisted; malformed
+override documents still return 400. Multipart Live upload uses saved defaults
+and has no new settings form field. An in-flight analysis/Live session is not
+mutated by later saves. Browser fallback Stage 1/2 calls remain separate requests
+and can read different revisions if settings change between them.
+
+Analysis responses (including Pipeline's nested stages and top-level revision),
+Live start, Live status and health events include `settings_revision` referring
+to the saved default snapshot; `analysis_settings` contains the actual effective
+values, including any override. Stage 1 passes these thresholds/options to the
+detector; X3D labels and tracking triggers use the effective thresholds. The
+response revision is additive metadata, independent of the API schema version
+and SQLite schema version. Fixtures include revision 0 for the default profile.
+
+The settings page loads actual backend values, validates input, and explicitly
+saves. It preserves drafts on errors/conflicts. Upload & Analyze defaults to
+using saved values; unchecking that option enables temporary advanced controls.
+Notification score floors/cooldown, privacy controls, device selection, file
+sampling and camera management are not persisted through this endpoint.
+Invalid/unreadable saved records and unavailable storage return 503 rather than
+silently reverting to project defaults or reporting a successful save.

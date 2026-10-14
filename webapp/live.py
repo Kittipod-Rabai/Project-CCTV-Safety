@@ -21,7 +21,7 @@ from webapp.models import resolve_device
 
 class LiveSession:
     def __init__(self, source_type, source, model, device, registry, settings, weights_dir,
-                 device_requested="auto", capture_factory=None, face_anonymizer_factory=None):
+                 device_requested="auto", capture_factory=None, face_anonymizer_factory=None, settings_revision=0):
         self.source_type = source_type
         self.source = source
         self.model = model
@@ -31,6 +31,7 @@ class LiveSession:
         self._capture_factory = capture_factory or cv2.VideoCapture
         self._face_anonymizer_factory = face_anonymizer_factory or YuNetFaceAnonymizer
         self.settings = settings
+        self.settings_revision = settings_revision
         self.weights_dir = weights_dir
         self.state = "starting"
         self.reason = None
@@ -106,6 +107,7 @@ class LiveSession:
             }
         elapsed = max(0.001, time.monotonic() - self.started_monotonic)
         return {"state": self.state, "session_id": self.session_id, "device_requested": self.device_requested,
+                "analysis_settings": self.settings, "settings_revision": self.settings_revision,
                 "device_used": self.device,
                 "device_components": {"yolo": self.device, "x3d": self.device, "yunet": "cpu"},
                 "frames_received": self.frames_received, "frames_processed": self.frames_processed,

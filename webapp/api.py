@@ -55,7 +55,7 @@ from webapp import config, media  # noqa: E402
 from webapp.media import ApiError  # noqa: E402
 from webapp.models import ModelLoadFailed, ModelRegistry, WeightsMissing, resolve_device, runtime_status  # noqa: E402
 from webapp.live import LiveSession, validate_source  # noqa: E402
-from webapp.event_store import EventStore, StorageUnavailable, EVENT_TYPES, frame_observations, window_observation  # noqa: E402
+from webapp.event_store import EventStore, StorageUnavailable, SettingsConflict, EVENT_TYPES, frame_observations, window_observation  # noqa: E402
 
 logger = logging.getLogger("webapp.api")
 
@@ -222,6 +222,57 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
     app.state.registry = registry
     store = event_store if event_store is not None else EventStore(config.EVENT_DB_PATH)
     app.state.event_store = store
+
+    def validate_saved_settings(value):
+        """A saved document is complete and strict; never silently drop misspelled fields."""
+        shape = {"yolo": {"thresholds", "iou", "imgsz", "max_det"},
+                 "x3d": {"fight_threshold"},
+                 "tracking": {"proximity_diagonals", "motion_diagonals_per_s", "max_track_gap_s"}}
+        if not isinstance(value, dict) or set(value) != set(shape):
+            raise ApiError(400, "invalid_parameter", "Settings must contain exactly yolo, x3d and tracking")
+        for section, keys in shape.items():
+            if not isinstance(value[section], dict) or set(value[section]) != keys:
+                raise ApiError(400, "invalid_parameter", f"Invalid fields in {section} settings")
+        ys = value["yolo"]
+        if not isinstance(ys["thresholds"], dict) or set(ys["thresholds"]) != set(CLASS_NAMES):
+            raise ApiError(400, "invalid_parameter", "YOLO thresholds must contain exactly the six detector classes")
+        numbers = [*ys["thresholds"].values(), ys["iou"], ys["imgsz"], ys["max_det"],
+                   value["x3d"]["fight_threshold"], *value["tracking"].values()]
+        if any(type(x) not in (int, float) or (type(x) is float and not math.isfinite(x)) for x in numbers):
+            raise ApiError(400, "invalid_parameter", "Settings must be finite JSON numbers, not booleans or strings")
+        if type(ys["imgsz"]) is not int or type(ys["max_det"]) is not int:
+            raise ApiError(400, "invalid_parameter", "Image size and max detections must be integers")
+        return _analysis_settings(json.dumps(value), thresholds)
+
+    def saved_settings():
+        defaults = _analysis_settings(None, thresholds)
+        record = store.settings()
+        if record is None:
+            return {"analysis_settings": defaults, "defaults": defaults, "revision": 0, "updated_at": None}
+        try:
+            record["analysis_settings"] = validate_saved_settings(record["analysis_settings"])
+        except ApiError as exc:
+            raise StorageUnavailable("Saved analysis settings are invalid; repair the local settings record") from exc
+        return {**record, "defaults": defaults}
+
+    def effective_settings(raw=None):
+        record = saved_settings()
+        merged = json.loads(json.dumps(record["analysis_settings"]))
+        if raw and raw.strip():
+            try:
+                override = json.loads(raw)
+            except (TypeError, json.JSONDecodeError) as exc:
+                raise ApiError(400, "invalid_parameter", "'analysis_settings' must be valid JSON") from exc
+            if not isinstance(override, dict):
+                raise ApiError(400, "invalid_parameter", "'analysis_settings' must be a JSON object")
+            def merge(target, incoming):
+                for key, value in incoming.items():
+                    if isinstance(value, dict) and isinstance(target.get(key), dict):
+                        merge(target[key], value)
+                    else:
+                        target[key] = value
+            merge(merged, override)
+        return _analysis_settings(json.dumps(merged), thresholds), record["revision"]
     analysis_semaphore = BoundedSemaphore(1)
     app.state.analysis_semaphore = analysis_semaphore
     live_lock = threading.Lock()
@@ -276,6 +327,10 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
     @app.exception_handler(StorageUnavailable)
     async def _storage_unavailable(_: Request, exc: StorageUnavailable):
         return _error(503, "storage_unavailable", str(exc))
+
+    @app.exception_handler(SettingsConflict)
+    async def _settings_conflict(_: Request, exc: SettingsConflict):
+        return _error(409, "settings_conflict", str(exc))
 
     @app.exception_handler(StarletteHTTPException)
     async def _http_error(request: Request, exc: StarletteHTTPException):
@@ -348,6 +403,20 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
     def dashboard(period: Literal["today", "7d", "all"] = "7d"):
         return store.dashboard(period=period)
 
+    @app.get("/api/settings")
+    def get_settings():
+        return saved_settings()
+
+    @app.put("/api/settings")
+    def put_settings(payload: dict):
+        if set(payload) != {"analysis_settings", "revision"}:
+            raise ApiError(400, "invalid_parameter", "Provide analysis_settings and the revision you loaded")
+        revision = payload["revision"]
+        if type(revision) is not int or not 0 <= revision < 9223372036854775807:
+            raise ApiError(400, "invalid_parameter", "revision must be a non-negative integer")
+        settings = validate_saved_settings(payload["analysis_settings"])
+        return {**store.save_settings(settings, revision), "defaults": _analysis_settings(None, thresholds)}
+
     @app.get("/api/notifications")
     def notifications(after_id: int | None = Query(None, ge=0, le=9223372036854775807), limit: int = Query(20, ge=1, le=50)):
         return store.notifications(after_id=after_id, limit=limit)
@@ -403,7 +472,7 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
         except (ValueError, OSError) as exc:
             raise ApiError(400, "invalid_source", str(exc)) from exc
         active_device = choose_device(requested_device)
-        active_settings = _analysis_settings(json.dumps(payload.get("analysis_settings", {})), thresholds)
+        active_settings, settings_revision = effective_settings(json.dumps(payload.get("analysis_settings", {})))
         with live_lock:
             current = app.state.live_session
             if current and current.state in {"starting", "running", "stopping"}:
@@ -416,7 +485,7 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
                 session = LiveSession(source_type, safe_source, model, active_device, registry,
                                       active_settings, weights_dir, device_requested=requested_device,
                                       capture_factory=capture_factory,
-                                      face_anonymizer_factory=face_anonymizer_factory)
+                                      face_anonymizer_factory=face_anonymizer_factory, settings_revision=settings_revision)
                 prepare_live_history(session, safe_source, source_type)
                 session.on_finish = lambda: finish_live_history(session, analysis_semaphore.release)
                 app.state.live_session = session
@@ -428,7 +497,7 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
                 "device_used": active_device,
                 "device_components": {"yolo": active_device, "x3d": active_device, "yunet": "cpu"},
                 "source_type": source_type,
-                "session_id": session.session_id}
+                "session_id": session.session_id, "analysis_settings": active_settings, "settings_revision": settings_revision}
 
     @app.post("/api/live/start-upload")
     async def live_start_upload(file: UploadFile = File(...), model: str = Form("yolov8n"),
@@ -455,7 +524,7 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
                 raise ApiError(400, "invalid_source", "ไฟล์วิดีโอว่างเปล่า")
 
             active_device = choose_device(device)
-            active_settings = _analysis_settings("{}", thresholds)
+            active_settings, settings_revision = effective_settings()
             with live_lock:
                 current = app.state.live_session
                 if current and current.state in {"starting", "running", "stopping"}:
@@ -468,7 +537,7 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
                     session = LiveSession("file", str(uploaded_path), model, active_device, registry,
                                           active_settings, weights_dir, device_requested=device,
                                           capture_factory=capture_factory,
-                                          face_anonymizer_factory=face_anonymizer_factory)
+                                          face_anonymizer_factory=face_anonymizer_factory, settings_revision=settings_revision)
                     def cleanup_upload():
                         try:
                             uploaded_path.unlink(missing_ok=True)
@@ -485,7 +554,7 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
                     "device_used": active_device,
                     "device_components": {"yolo": active_device, "x3d": active_device, "yunet": "cpu"},
                     "source_type": "file",
-                    "session_id": session.session_id}
+                    "session_id": session.session_id, "analysis_settings": active_settings, "settings_revision": settings_revision}
         except Exception:
             uploaded_path.unlink(missing_ok=True)
             raise
@@ -585,7 +654,7 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
                            "Stage 1 dense mode needs a video file (mp4, avi, mov, mkv); an image was uploaded. "
                            "Use mode=frames for images.")
         privacy_settings = _privacy_settings(face_confidence, face_padding, face_blur_strength)
-        active_settings = _analysis_settings(analysis_settings, thresholds)
+        active_settings, settings_revision = effective_settings(analysis_settings)
         active_thresholds = active_settings["yolo"]["thresholds"]
         ppe_confidence = min(active_thresholds["person"], active_thresholds["helmet"], active_thresholds["vest"])
         ensure_model(model, actual_device)
@@ -636,7 +705,7 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
             "source": _source(width, height, info),
             "thresholds": {name: _r(value) for name, value in active_thresholds.items()},
             "ppe_min_confidence": _r(ppe_confidence),
-            "analysis_settings": active_settings,
+            "analysis_settings": active_settings, "settings_revision": settings_revision,
             "device_requested": device or "auto", "device_used": actual_device,
             "mode": mode_used,
             "sample_fps": _r(fps_used) if dense else None,
@@ -681,7 +750,7 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
         device: str | None = Form("auto"),
     ):
         actual_device = choose_device(device)
-        active_settings = _analysis_settings(analysis_settings, thresholds)
+        active_settings, settings_revision = effective_settings(analysis_settings)
         kind, size = _check_upload(file)
         _check_kind_and_size(file, kind, size)
         if kind != "video":
@@ -720,7 +789,7 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
             "frames_per_window": FRAMES,
             "window_s": config.WINDOW_S,
             "fight_threshold": active_settings["x3d"]["fight_threshold"],
-            "analysis_settings": active_settings,
+            "analysis_settings": active_settings, "settings_revision": settings_revision,
             "windows": windows,
             "summary": {
                 "max_fight_prob": max(window["probs"]["fight"] for window in windows),
@@ -769,7 +838,7 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
         if kind != "video":
             raise ApiError(422, "video_required", "The combined pipeline requires a video file.")
         privacy_settings = _privacy_settings(face_confidence, face_padding, face_blur_strength)
-        active_settings = _analysis_settings(analysis_settings, thresholds)
+        active_settings, settings_revision = effective_settings(analysis_settings)
         active_thresholds = active_settings["yolo"]["thresholds"]
         ppe_confidence = min(active_thresholds["person"], active_thresholds["helmet"], active_thresholds["vest"])
         ensure_model(model, actual_device)
@@ -887,7 +956,7 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
             "class_names": list(CLASS_NAMES), "media_type": "video", "source": source,
             "thresholds": {name: _r(value) for name, value in active_thresholds.items()},
             "ppe_min_confidence": _r(ppe_confidence), "mode": "dense",
-            "analysis_settings": active_settings,
+            "analysis_settings": active_settings, "settings_revision": settings_revision,
             "sample_fps": _r(fps_used), "frames": stage1_frames,
         }
         fight_windows = sum(window["label"] == "fight" for window in s2_windows)
@@ -896,7 +965,7 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
             "class_names": list(STAGE2_CLASS_NAMES), "frames_per_window": FRAMES,
             "window_s": config.WINDOW_S, "windows": s2_windows,
             "fight_threshold": active_settings["x3d"]["fight_threshold"],
-            "analysis_settings": active_settings,
+            "analysis_settings": active_settings, "settings_revision": settings_revision,
             "summary": {
                 "max_fight_prob": max(window["probs"]["fight"] for window in s2_windows),
                 "fight_windows": fight_windows, "total_windows": len(s2_windows),
@@ -904,6 +973,7 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
         }
         response_started = perf_counter()
         response = {
+            "settings_revision": settings_revision,
             "device_requested": device or "auto", "device_used": actual_device,
             "pipeline_mode": "tracking_trigger_shadow",
             "trigger": "candidate if person proximity or multi-person motion is observed",

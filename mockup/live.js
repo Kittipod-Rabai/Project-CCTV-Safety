@@ -159,6 +159,7 @@
       if (!result.ok) throw new Error(body.error?.message || 'เริ่ม Live ไม่สำเร็จ');
       if (typeof body.session_id !== 'string') throw new Error('API ไม่ส่ง session_id · รีสตาร์ต backend');
       activeSession = body.session_id;
+      addEvent('ใช้ค่าตั้งอ้างอิง revision '+body.settings_revision+' จาก backend');
       stop.disabled = false;
       report(sourceType.value === 'file'
         ? 'กำลังเล่นคลิปต่อเนื่อง · หากเครื่องช้าจะเล่นช้าลงเพื่อไม่ทิ้งเฟรม · ' + deviceSummary(body.device_components, body.device_used)

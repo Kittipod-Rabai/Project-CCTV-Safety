@@ -23,6 +23,10 @@ class StorageUnavailable(RuntimeError):
     pass
 
 
+class SettingsConflict(RuntimeError):
+    pass
+
+
 def now():
     return datetime.now(UTC).isoformat(timespec="microseconds")
 
@@ -77,7 +81,7 @@ class EventStore:
             with self._schema_lock:
                 if not self._ready:
                     version = con.execute("PRAGMA user_version").fetchone()[0]
-                    if version not in (0, 1, 2):
+                    if version not in (0, 1, 2, 3):
                         raise StorageUnavailable("Unsupported observation database version")
                     con.execute("PRAGMA journal_mode=WAL")
                     con.executescript("""
@@ -104,7 +108,10 @@ class EventStore:
                             created_at TEXT NOT NULL, score REAL NOT NULL,
                             start_s REAL, end_s REAL);
                         CREATE INDEX IF NOT EXISTS notifications_observation ON notifications(observation_id,id DESC);
-                        PRAGMA user_version=2;
+                        CREATE TABLE IF NOT EXISTS app_settings (
+                            id INTEGER PRIMARY KEY CHECK(id=1), payload TEXT NOT NULL,
+                            revision INTEGER NOT NULL, updated_at TEXT NOT NULL);
+                        PRAGMA user_version=3;
                     """)
                     self._ready = True
             with con:
@@ -125,6 +132,30 @@ class EventStore:
         with self.connection() as con:
             self._begin(con, name, source_type, run_id, "running")
         return run_id
+
+    def settings(self):
+        with self.connection() as con:
+            row = con.execute("SELECT payload,revision,updated_at FROM app_settings WHERE id=1").fetchone()
+        if row is None:
+            return None
+        try:
+            payload = json.loads(row["payload"])
+        except (TypeError, json.JSONDecodeError) as exc:
+            raise StorageUnavailable("Saved analysis settings are unreadable") from exc
+        return {"analysis_settings": payload, "revision": row["revision"], "updated_at": row["updated_at"]}
+
+    def save_settings(self, settings, expected_revision):
+        with self.connection() as con:
+            con.execute("BEGIN IMMEDIATE")
+            row = con.execute("SELECT revision FROM app_settings WHERE id=1").fetchone()
+            revision = row[0] if row else 0
+            if revision != expected_revision:
+                raise SettingsConflict("Settings changed since you loaded them; reload before saving")
+            timestamp = now()
+            con.execute("INSERT INTO app_settings(id,payload,revision,updated_at) VALUES (1,?,?,?) "
+                        "ON CONFLICT(id) DO UPDATE SET payload=excluded.payload,revision=excluded.revision,updated_at=excluded.updated_at",
+                        (json.dumps(settings), revision+1, timestamp))
+        return {"analysis_settings": settings, "revision": revision+1, "updated_at": timestamp}
 
     @staticmethod
     def _observe(con, run_id, model, observations):

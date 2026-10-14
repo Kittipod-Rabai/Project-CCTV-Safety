@@ -359,16 +359,16 @@ tbody tr:hover{background:var(--panel2)}
 .mock-banner svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;flex:none}
 .mock-banner span{font-weight:500;color:#d6b45c;font-size:11.5px}
 .mock-banner{line-height:1.5}
-body:is([data-page="analyze"],[data-page="logs"],[data-page="dashboard"]) .chip-mock{display:none}
+body:is([data-page="analyze"],[data-page="logs"],[data-page="dashboard"],[data-page="settings"]) .chip-mock{display:none}
 /* sidebar system box holds mock numbers: label it, and hide it on the real-API view */
 .sys-mock{font-size:10px;font-weight:700;letter-spacing:.4px;color:#fbbf24;border:1px dashed #7c5e12;
   background:#3a2d0a55;border-radius:5px;padding:1px 7px;margin-bottom:5px;display:inline-block}
-body:is([data-page="analyze"],[data-page="logs"],[data-page="dashboard"]) .side-foot{display:none}
+body:is([data-page="analyze"],[data-page="logs"],[data-page="dashboard"],[data-page="settings"]) .side-foot{display:none}
 
 /* ---------- UPLOAD & ANALYZE (real API output) ---------- */
 .chip-real{display:none;font-size:10.5px;letter-spacing:.6px;font-weight:700;color:#4ade80;
   border:1px solid #166534;background:#052e1688;padding:3px 9px;border-radius:6px}
-body:is([data-page="analyze"],[data-page="logs"],[data-page="dashboard"]) .chip-real{display:inline-block}
+body:is([data-page="analyze"],[data-page="logs"],[data-page="dashboard"],[data-page="settings"]) .chip-real{display:inline-block}
 #v-analyze [hidden]{display:none!important}
 .az-top{margin-bottom:14px}
 .az-form{padding:14px 16px;display:flex;flex-direction:column;gap:12px}
@@ -646,7 +646,7 @@ body:is([data-page="analyze"],[data-page="logs"],[data-page="dashboard"]) .chip-
   .live-demo{overflow:auto}
   .live-demo .live-body{overflow:visible}
 }
-body:is([data-page="analyze"],[data-page="logs"],[data-page="dashboard"]) #navLive{display:none}
+body:is([data-page="analyze"],[data-page="logs"],[data-page="dashboard"],[data-page="settings"]) #navLive{display:none}
 /* Real observation dashboard */
 .db-intro{padding:16px;margin-bottom:12px;display:flex;gap:18px;flex-wrap:wrap;align-items:center;justify-content:space-between}
 .db-intro h2{font-size:17px;margin:0 0 6px}.db-intro p{color:var(--muted);margin:0;font-size:12px}
@@ -666,6 +666,11 @@ body:is([data-page="analyze"],[data-page="logs"],[data-page="dashboard"]) #navLi
 .nt-toast{position:fixed;bottom:18px;right:18px;width:min(430px,calc(100vw - 36px));z-index:40;padding:16px;border-color:var(--warn);box-shadow:0 8px 36px #0009;overflow-wrap:anywhere}
 .nt-toast p{font-size:13px;line-height:1.6;margin-bottom:12px}.nt-toast>div{display:flex;gap:8px;flex-wrap:wrap}
 #ntPanel[hidden],#ntToast[hidden]{display:none}
+.st-card{padding:20px}.st-card h2{font-size:18px;margin-bottom:10px}.st-card>p{color:var(--muted);font-size:12px;line-height:1.7;margin:10px 0}
+.st-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:18px 0}.st-field{display:flex;flex-direction:column;gap:7px}.st-field label{font-size:12px}
+.st-field input,.st-field select{background:var(--panel2);border:1px solid var(--line);border-radius:7px;color:var(--text);padding:9px;min-width:0;width:100%}
+.st-actions{display:flex;gap:10px;flex-wrap:wrap}.az-saved-settings{padding:10px 12px;font-size:12px;line-height:1.7}.az-saved-settings small{display:block;color:var(--muted)}
+.az-model-control input:disabled,.az-model-control select:disabled{opacity:.55}
 </style>
 <style>
 /* Live page desktop proportions: preview first, results beside it, controls on one readable row. */
@@ -760,9 +765,9 @@ body:is([data-page="analyze"],[data-page="logs"],[data-page="dashboard"]) #navLi
       <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg>
       จัดการกล้อง <span class="nav-soon">เร็วๆ นี้</span>
     </button>
-    <button class="nav-item" type="button" disabled title="ส่วนนี้ยังไม่พร้อมใช้งานใน pilot">
+    <button class="nav-item" type="button" data-go="settings">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 7.5 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H1.7a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 7.5"/></svg>
-      ตั้งค่าระบบ <span class="nav-soon">เร็วๆ นี้</span>
+      ตั้งค่าระบบ
     </button>
 
     <div class="side-foot">
@@ -814,6 +819,21 @@ body:is([data-page="analyze"],[data-page="logs"],[data-page="dashboard"]) #navLi
       </div>
       <p class="note">วันที่ใช้เวลาบันทึกรายการครั้งแรก ไม่ใช่เวลาในวิดีโอ การเพิ่ม observations ในรายการ Live เดิมไม่เพิ่มจำนวนรายการหรือย้ายวันที่ กรณีเลือกทั้งหมด กราฟรายวันแสดงเฉพาะ 7 วันล่าสุด ส่วนยอดรวมและประเภทผลครอบคลุมทั้งหมด</p>
       <p class="note" id="dbUpdated">ยังไม่ได้อ่านข้อมูล</p>
+    </section>
+
+    <section class="view" id="v-settings" aria-labelledby="stTitle">
+      <div class="card st-card">
+        <h2 id="stTitle">ค่าตั้งต้นการวิเคราะห์ที่บันทึกในเครื่อง</h2>
+        <p>ใช้กับ Stage 1, Stage 2, Pipeline และ Live session ที่เริ่มครั้งถัดไป งานที่กำลังทำจะใช้ค่าตอนเริ่มต่อจนจบ</p>
+        <p>ค่าความมั่นใจและ Fight threshold ของโมเดลแยกจากเกณฑ์แจ้งเหตุสงสัย ไม่ได้ปรับเกณฑ์แจ้งเตือน ความเป็นส่วนตัว หรืออุปกรณ์ประมวลผลจากหน้านี้</p>
+        <p id="stRevision">ยังไม่ได้อ่านค่าบันทึก</p>
+        <p id="stMessage" role="status" aria-live="polite">กำลังโหลด…</p>
+        <form id="stForm">
+          <div id="stFields" class="st-grid"></div>
+          <div class="st-actions"><button class="btn primary" id="stSave" type="submit" disabled>บันทึกค่าตั้งต้น</button><button class="btn" id="stLoad" type="button">โหลดค่าปัจจุบัน</button><button class="btn" id="stDefaults" type="button" disabled>ใส่ค่าเริ่มต้นในฟอร์ม</button></div>
+        </form>
+        <p>แก้ค่าในฟอร์มแล้วยังไม่มีผลจนกดบันทึก หากมีหน้าต่างอื่นบันทึกก่อน ระบบจะให้โหลดค่าปัจจุบันเพื่อป้องกันการเขียนทับ</p>
+      </div>
     </section>
 
     <!-- ---------- LIVE ---------- -->
@@ -960,8 +980,9 @@ body:is([data-page="analyze"],[data-page="logs"],[data-page="dashboard"]) #navLi
                 วิเคราะห์ไฟล์
               </button>
             </div>
+            <div class="az-saved-settings"><label><input id="azUseSavedSettings" type="checkbox" checked> ใช้ค่าที่บันทึกจากหน้าตั้งค่าระบบ</label><small id="azSavedSettingsMeta">backend จะอ่านค่าที่บันทึกเมื่อเริ่มวิเคราะห์</small></div>
             <details class="az-model-settings">
-              <summary class="az-settings-summary">ตั้งค่าขั้นสูง · YOLO, X3D และ Tracking <small>ใช้ค่าเริ่มต้นได้ หากยังไม่แน่ใจ</small></summary>
+              <summary class="az-settings-summary">ตั้งค่าขั้นสูง · YOLO, X3D และ Tracking <small>ยกเลิกใช้ค่าที่บันทึกเพื่อปรับเฉพาะรอบนี้</small></summary>
               <div class="az-model-grid">
                 <div class="az-model-heading">YOLO · ใช้ร่วมกันทั้ง YOLOv8n และ YOLOv8s</div>
                 <div class="az-model-control"><label for="azThPerson">ความมั่นใจ person</label><input id="azThPerson" type="number" min="0.01" max="0.99" step="0.01" value="0.25"><small>ลดลงพบคนง่ายขึ้น แต่อาจเพิ่มกล่องผิดพลาด</small></div>
@@ -980,7 +1001,7 @@ body:is([data-page="analyze"],[data-page="logs"],[data-page="dashboard"]) #navLi
                 <div class="az-model-control"><label for="azTrackMotion">ความเร็วขั้นต่ำ (แนวทแยง/วินาที)</label><input id="azTrackMotion" type="number" min="0.01" max="2" step="0.05" value="0.25"><small>ลดลงแล้ว trigger จากการเคลื่อนไหวได้ง่ายขึ้น</small></div>
                 <div class="az-model-control"><label for="azTrackGap">ช่วงขาดหายสูงสุดของ track (วินาที)</label><input id="azTrackGap" type="number" min="0.1" max="3" step="0.05" value="0.75"><small>เพิ่มแล้วเชื่อม track ข้ามเฟรมที่ตรวจไม่พบได้นานขึ้น</small></div>
               </div>
-              <div class="az-settings-tools"><button type="button" class="btn" id="azResetSettings">คืนค่าตั้งต้น</button></div>
+              <div class="az-settings-tools"><button type="button" class="btn" id="azResetSettings">คืนค่าตั้งต้นเฉพาะรอบนี้</button></div>
               <p class="az-privacy-note">ค่า FPS สำหรับวิดีโอและจำนวนเฟรมสำหรับโหมดสำรองอยู่ด้านบน · การเพิ่มความไวอาจเพิ่มผลบวกลวง · อุปกรณ์ประมวลผลเลือกได้ต่อการรันด้านบน; YOLO/X3D ใช้ CUDA ได้เมื่อ PyTorch รองรับ ส่วน YuNet เบลอหน้าทำงานบน CPU</p>
             </details>
             <details class="az-privacy-settings">
@@ -1223,6 +1244,7 @@ const fmtD  = d => pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+String(d.getFull
 /* ============ NAVIGATION ============ */
 const PAGES = {
   dashboard:['ภาพรวมผลวิเคราะห์','สรุปประวัติจริงและสถานะ Live pilot'],
+  settings:['ตั้งค่าการวิเคราะห์','บันทึกค่าเริ่มต้นสำหรับคำขอและเซสชันถัดไป'],
   live:     ['Live CCTV Monitoring','ภาพสดพร้อมผลตรวจจับ 4 เหตุการณ์แบบเรียลไทม์'],
   logs:     ['ประวัติผลตรวจจับ','ผลจากโมเดลจริง · รอตรวจสอบโดยผู้ใช้'],
   analyze:  ['Upload & Analyze','วิเคราะห์ภาพ/วิดีโอด้วยโมเดลจริงผ่าน API (ต้นแบบ pilot)']
@@ -1449,8 +1471,9 @@ navLive.textContent = SCENES.filter(s=>s.boxes.length).length;
 <script src="dashboard.js?v=20261014-dashboard"></script>
 <script src="logs.js?v=20261014-notifications"></script>
 <script src="notifications.js?v=20261014-notifications"></script>
-<script src="analyze.js?v=20261014-pipeline-live"></script>
-<script src="live.js?v=20261014-pipeline-live"></script>
+<script src="settings.js?v=20261014-settings"></script>
+<script src="analyze.js?v=20261014-settings"></script>
+<script src="live.js?v=20261014-settings"></script>
 <script src="live-flow.js?v=20261014-pipeline-live"></script>
 </body>
 </html>

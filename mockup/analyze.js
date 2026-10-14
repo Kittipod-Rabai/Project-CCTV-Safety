@@ -947,6 +947,7 @@
       metaItem(ui.s1Meta, 'duration_s', num(src.duration_s, 2));
       metaItem(ui.s1Meta, 'เฟรมที่ตรวจ', data.frames.length);
     }
+    if (Number.isInteger(data.settings_revision)) metaItem(ui.s1Meta, 'ค่าตั้งอ้างอิง revision', data.settings_revision);
     metaItem(ui.s1Meta, 'detector schema', 'v' + data.detector_schema_version);
     if (data.analysis_settings && data.analysis_settings.yolo) {
       const ys = data.analysis_settings.yolo;
@@ -1094,6 +1095,7 @@
     // Technical details: summary numbers, window times and raw probabilities.
     clear(ui.s2Meta);
     metaItem(ui.s2Meta, 'model', data.model);
+    if (Number.isInteger(data.settings_revision)) metaItem(ui.s2Meta, 'ค่าตั้งอ้างอิง revision', data.settings_revision);
     if (data.device_used) metaItem(ui.s2Meta, 'อุปกรณ์ที่ใช้จริง', data.device_used);
     metaItem(ui.s2Meta, 'class_names', data.class_names.join(', '));
     metaItem(ui.s2Meta, data.pipeline ? 'X3D ดิบ: Fight windows / total' : 'X3D Fight windows / total', sm.fight_windows + ' / ' + sm.total_windows);
@@ -1156,7 +1158,8 @@
     fd.append('model', ui.model.value);
     fd.append('device', ui.device ? ui.device.value : 'auto');
     appendPrivacySettings(fd, privacy);
-    fd.append('analysis_settings', JSON.stringify(analysis || analysisSettings()));
+    const values = analysis === undefined ? analysisSettings() : analysis;
+    if (values) fd.append('analysis_settings', JSON.stringify(values));
     if (mode === 'dense') {
       fd.append('mode', 'dense');
       fd.append('sample_fps', String(clampFloat(ui.sampleFps.value, SAMPLE_FPS)));
@@ -1176,6 +1179,7 @@
   }
 
   function analysisSettings() {
+    if ($('azUseSavedSettings').checked) return null;
     const c = ui.modelSettings;
     const value = (input, range, fallback) => clampFloat(input.value, { min: range[0], max: range[1], def: fallback });
     return {
@@ -1242,7 +1246,8 @@
     const fd = new FormData();
     fd.append('file', file, file.name);
     fd.append('device', ui.device ? ui.device.value : 'auto');
-    fd.append('analysis_settings', JSON.stringify(analysisSettings()));
+    const values = analysisSettings();
+    if (values) fd.append('analysis_settings', JSON.stringify(values));
     const r = await callApi(API.stage2, { method: 'POST', body: fd });
     if (token !== runToken) return null;
     if (!r.ok) { setState(ui.s2State, 'error', errorText(r), r.detail); return r; }
@@ -1266,7 +1271,7 @@
     fd.append('device', ui.device ? ui.device.value : 'auto');
     fd.append('sample_fps', String(clampFloat(ui.sampleFps.value, SAMPLE_FPS)));
     appendPrivacySettings(fd, usedPrivacy);
-    fd.append('analysis_settings', JSON.stringify(usedAnalysis));
+    if (usedAnalysis) fd.append('analysis_settings', JSON.stringify(usedAnalysis));
     const r = await callApi(API.pipeline, { method: 'POST', body: fd });
     if (token !== runToken) return null;
     if (!r.ok) {
@@ -1416,6 +1421,8 @@
   Array.prototype.forEach.call(ui.model.options, opt => { opt.dataset.label = opt.textContent; });
   ui.file.addEventListener('change', onFileChange);
   $('azResetSettings').addEventListener('click', () => {
+    $('azUseSavedSettings').checked = false;
+    $('azUseSavedSettings').dispatchEvent(new Event('change'));
     const defaults = {
       azThPerson:'0.25', azThHelmet:'0.20', azThVest:'0.20', azThFall:'0.20', azThFire:'0.20', azThSmoke:'0.20',
       azYoloIou:'0.70', azYoloImg:'640', azYoloMaxDet:'300', azX3dThreshold:'0.50',
