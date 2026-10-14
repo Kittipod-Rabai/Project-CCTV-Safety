@@ -373,3 +373,38 @@ Numerical note: the server runs X3D-S (and YOLO) in **fp32**, while the Stage 2 
 Playback note: the browser overlay assumes the video's `currentTime` equals `index / fps` as read by OpenCV. Variable-frame-rate files, or MP4s whose start time is not zero, can drift by about one frame. Dense mode on CPU (up to 1,800 YOLO runs for a 60 s clip at 30 samples/s) can be slow, and no progress is shown.
 
 Models load lazily on the first analyze request (`GET /api/health` shows `available` → `loaded`); the GPU (`cuda:0`) is used when available, otherwise the CPU.
+
+## 6. Live replay lifecycle (2026-10-14)
+
+`POST /api/live/start-upload` accepts multipart `file`, `model` (default `yolov8n`),
+and `device` (default `auto`). `POST /api/live/start` retains JSON file/RTSP input.
+There is one inference slot per process: concurrent Live starts return 409,
+and analysis while Live is active/draining returns 429. Replay slows down with
+processing instead of dropping already-received frames; this is not an FPS SLA.
+
+The start response, `GET /api/live/status`, and all Live WebSocket events contain
+the same opaque `session_id`. Idle status has `session_id: null`. Connect to
+`/api/live/events?session_id=<id>` to bind to the requested session. Omitting the
+query still binds to the current session for compatibility. A different ID gets
+a health event with `reason: session_mismatch` and close code 1008. Normal
+completion sends terminal health and closes with code 1000. Events are a bounded
+display feed, not durable logs; a late/reconnecting client can receive a terminal
+status snapshot instead of the complete historical feed.
+
+`POST /api/live/stop` requests capture stop and returns the current status;
+already-received frames drain before `stopped`. Source/model/privacy errors
+finish as `error`; stream overload can finish as `degraded`. Neither permits a
+new inference job until capture and processing workers have exited and cleanup
+has run. Uploaded replay files are deleted after their VideoCapture is released.
+Application shutdown also requests stop and waits for cleanup (up to 180 seconds,
+then logs an error without claiming cleanup succeeded).
+
+The frontend resets output per session, ignores stale callbacks, and polls status
+after a WebSocket disconnect without automatically starting another session.
+YOLO/X3D use the requested supported device; YuNet stays on CPU. Display frames
+pass through anonymization, while model inputs remain original frames. Face
+detection can miss faces; this is not a guarantee of complete de-identification.
+
+For videos the browser cannot play, Upload & Analyze calls Stage 1 and Stage 2
+sequentially to respect the single inference slot. It labels the result as
+separate analyses with frame previews, not a combined shadow-mode pipeline.

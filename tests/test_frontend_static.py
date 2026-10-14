@@ -173,7 +173,7 @@ def test_analyze_js_calls_only_contract_endpoints(js_text):
 def test_live_js_uses_local_live_api_and_safe_text_rendering():
     code = _strip_js_comments(LIVE_JS.read_text(encoding="utf-8"))
     used = set(re.findall(r"['\"`](/api/[^'\"`?\s]*)", code))
-    assert used == {"/api/live/start", "/api/live/start-upload", "/api/live/stop", "/api/live/events"}
+    assert used == {"/api/live/start", "/api/live/start-upload", "/api/live/stop", "/api/live/events", "/api/live/status"}
     assert "innerHTML" not in code and "textContent" in code
     assert "ws://" in code and "location.host" in code
     assert "device_components" in code and "devices.yolo" in code and "devices.x3d" in code and "devices.yunet" in code

@@ -1384,19 +1384,29 @@
       ? 'กำลังส่งวิดีโอไปวิเคราะห์ (Stage 1 + Stage 2) …'
       : 'กำลังส่งภาพไปวิเคราะห์ (Stage 1) …');
 
-    let jobs;
-    if (kind === 'video' && mode === 'dense') jobs = [runPipeline(file, token)];
-    else {
-      jobs = [runStage1(file, mode, notice, token)];
-      if (kind === 'video') jobs.push(runStage2(file, token));
-      else setState(ui.s2State, 'info', 'Stage 2 ต้องใช้ไฟล์วิดีโอ — ไม่ได้เรียก Stage 2 สำหรับภาพนิ่ง');
+    const results = [];
+    try {
+      if (kind === 'video' && mode === 'dense') results.push(await runPipeline(file, token));
+      else {
+        // The backend owns one inference slot. Sequential fallback avoids rejecting
+        // our own Stage 2 request with analysis_busy while Stage 1 is still running.
+        results.push(await runStage1(file, mode, notice, token));
+        if (token !== runToken) return;
+        if (kind === 'video') results.push(await runStage2(file, token));
+        else setState(ui.s2State, 'info', 'Stage 2 ต้องใช้ไฟล์วิดีโอ — ไม่ได้เรียก Stage 2 สำหรับภาพนิ่ง');
+      }
+    } catch (err) {
+      if (token === runToken) setState(ui.status, 'error', 'แสดงผลไม่สำเร็จ — ' + err.message);
+      return;
+    } finally {
+      if (token === runToken) ui.run.disabled = false;
     }
-    const results = await Promise.all(jobs);
     if (token !== runToken) return;
     ui.run.disabled = false;
     ui.preview.classList.add('thumb');   // the result view replaces the large preview
     const failed = results.filter(r => !r || !r.ok).length;
-    if (failed === 0) ui.status.hidden = true;
+    if (failed === 0 && notice) setState(ui.status, 'warn', 'วิเคราะห์แยก Stage 1 และ Stage 2 สำเร็จ · แสดงภาพทีละเฟรม · ไม่ใช่ Pipeline รวม');
+    else if (failed === 0) ui.status.hidden = true;
     else if (failed === results.length) setState(ui.status, 'error', 'วิเคราะห์ไม่สำเร็จ — ดูรายละเอียดในแต่ละ Stage');
     else setState(ui.status, 'warn', 'วิเคราะห์เสร็จบางส่วน — ดูรายละเอียดในแต่ละ Stage');
     loadHealth();

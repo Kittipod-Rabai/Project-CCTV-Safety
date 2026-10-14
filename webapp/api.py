@@ -56,6 +56,7 @@ from webapp.live import LiveSession, validate_source  # noqa: E402
 
 logger = logging.getLogger("webapp.api")
 
+
 _HTTP_ERROR_CODES = {404: "not_found", 405: "method_not_allowed"}
 
 
@@ -201,7 +202,8 @@ def _analysis_settings(raw: str | None, base_thresholds: dict) -> dict:
                          "max_track_gap_s": gap}}
 
 
-def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_factory=None) -> FastAPI:
+def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_factory=None,
+               capture_factory=None) -> FastAPI:
     weights_dir = Path(weights_dir) if weights_dir is not None else config.WEIGHTS_DIR
     face_anonymizer_factory = face_anonymizer_factory or YuNetFaceAnonymizer
     if registry is None:
@@ -222,6 +224,14 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
         removed = _cleanup_stale_live_uploads()
         if removed:
             logger.info("Removed %d stale Live replay upload(s)", removed)
+
+    @app.on_event("shutdown")
+    async def stop_live_on_shutdown():
+        session = app.state.live_session
+        if session:
+            session.stop()
+            if not await asyncio.to_thread(session.wait, 180):
+                logger.error("Live workers did not finish during shutdown")
 
     def analysis_slot() -> Iterator[None]:
         """Keep only one CPU/GPU-heavy analysis active per local pilot process."""
@@ -343,7 +353,9 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
                 ensure_model(model, active_device)
                 ensure_model(config.STAGE2_MODEL, active_device)
                 session = LiveSession(source_type, safe_source, model, active_device, registry,
-                                      active_settings, weights_dir, device_requested=requested_device)
+                                      active_settings, weights_dir, device_requested=requested_device,
+                                      capture_factory=capture_factory,
+                                      face_anonymizer_factory=face_anonymizer_factory)
                 session.on_finish = analysis_semaphore.release
                 app.state.live_session = session
                 session.start()
@@ -354,7 +366,7 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
                 "device_used": active_device,
                 "device_components": {"yolo": active_device, "x3d": active_device, "yunet": "cpu"},
                 "source_type": source_type,
-                "session_id": str(session.started_at)}
+                "session_id": session.session_id}
 
     @app.post("/api/live/start-upload")
     async def live_start_upload(file: UploadFile = File(...), model: str = Form("yolov8n"),
@@ -392,7 +404,9 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
                     ensure_model(model, active_device)
                     ensure_model(config.STAGE2_MODEL, active_device)
                     session = LiveSession("file", str(uploaded_path), model, active_device, registry,
-                                          active_settings, weights_dir, device_requested=device)
+                                          active_settings, weights_dir, device_requested=device,
+                                          capture_factory=capture_factory,
+                                          face_anonymizer_factory=face_anonymizer_factory)
                     def cleanup_upload():
                         try:
                             uploaded_path.unlink(missing_ok=True)
@@ -408,7 +422,7 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
                     "device_used": active_device,
                     "device_components": {"yolo": active_device, "x3d": active_device, "yunet": "cpu"},
                     "source_type": "file",
-                    "session_id": str(session.started_at)}
+                    "session_id": session.session_id}
         except Exception:
             uploaded_path.unlink(missing_ok=True)
             raise
@@ -421,29 +435,41 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
         if not session:
             raise ApiError(404, "live_session_missing", "No live session exists.")
         session.stop()
-        return {"status": "stopping", **session.status()}
+        return {"status": session.state, **session.status()}
 
     @app.get("/api/live/status")
     def live_status():
         session = app.state.live_session
         return {"status": "idle", "device_requested": None, "device_used": None,
-                "device_components": None} if not session else {"status": session.state, **session.status()}
+                "device_components": None, "session_id": None} if not session else {"status": session.state, **session.status()}
 
     @app.websocket("/api/live/events")
-    async def live_events(websocket: WebSocket):
+    async def live_events(websocket: WebSocket, session_id: str | None = None):
         await websocket.accept()
         session = app.state.live_session
         if session is None:
             await websocket.send_json({"type": "health", "state": "idle"})
             await websocket.close()
             return
+        if session_id is not None and session_id != session.session_id:
+            await websocket.send_json({"type": "health", "state": "error",
+                                       "reason": "session_mismatch", "session_id": session_id})
+            await websocket.close(code=1008)
+            return
         try:
             while True:
-                try:
-                    event = await asyncio.to_thread(session._events.get, True, 20)
-                    await websocket.send_json(event)
-                except queue.Empty:
+                if session.wait(0) and session._events.empty():
                     await websocket.send_json({"type": "health", **session.status()})
+                    await websocket.close(code=1000)
+                    return
+                try:
+                    event = await asyncio.to_thread(session._events.get, True, 0.25)
+                except queue.Empty:
+                    event = {"type": "health", **session.status()}
+                await websocket.send_json(event)
+                if event.get("type") == "health" and event.get("state") in {"stopped", "error", "degraded"}:
+                    await websocket.close(code=1000)
+                    return
         except (WebSocketDisconnect, RuntimeError):
             return
 

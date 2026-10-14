@@ -11,9 +11,44 @@
   const metrics = $('liveRealMetrics');
   if (!start) return;
   let socket = null;
+  let generation = 0;
+  let activeSession = null;
+  let statusTimer = null;
   let latestFight = null;
   let latestConfidenceMessage = null;
   function report(text) { status.textContent = text; }
+  function setControls(active) {
+    [sourceType, source, sourceFile, device, $('liveModel')].forEach(input => {
+      if (input) input.disabled = active;
+    });
+  }
+  function finishSession() {
+    start.disabled = false; stop.disabled = true; setControls(false);
+    clearTimeout(statusTimer);
+    if (socket) { const old = socket; socket = null; old.close(); }
+  }
+  function pollStatus(token, id) {
+    clearTimeout(statusTimer);
+    statusTimer = setTimeout(async () => {
+      if (token !== generation) return;
+      try {
+        const body = await request('/api/live/status');
+        if (token !== generation) return;
+        if (body.session_id !== id) {
+          report('session เปลี่ยนแล้ว · หยุดแสดงผลรอบเก่า'); finishSession(); return;
+        }
+        renderMetrics(body);
+        if (['stopped', 'degraded', 'error', 'idle'].includes(body.status)) {
+          report(body.status + (body.reason ? ' · ' + body.reason : '')); finishSession(); return;
+        }
+        report('WebSocket หลุด · session ยัง ' + body.status + ' · กดหยุดได้');
+      } catch (err) {
+        if (token !== generation) return;
+        report('อ่านสถานะไม่ได้ · ' + err.message + ' · ตรวจ backend ก่อนเริ่มใหม่');
+      }
+      if (token === generation) pollStatus(token, id);
+    }, 500);
+  }
   function deviceSummary(devices, fallback) {
     if (!devices) return fallback || 'ไม่ทราบอุปกรณ์';
     return 'YOLO ' + (devices.yolo || '—') + ' · X3D ' + (devices.x3d || '—') + ' · YuNet ' + (devices.yunet || '—');
@@ -96,7 +131,16 @@
       report('ไฟล์ต้องมีขนาดไม่เกิน 100 MB');
       return;
     }
-    start.disabled = true; events.replaceChildren(); preview.hidden = true;
+    const token = ++generation;
+    clearTimeout(statusTimer);
+    if (socket) { socket.close(); socket = null; }
+    activeSession = null;
+    start.disabled = true; stop.disabled = true; setControls(true);
+    events.replaceChildren(); preview.hidden = true; preview.removeAttribute('src');
+    latestFight = null; latestConfidenceMessage = null;
+    if (confidenceList) confidenceList.replaceChildren();
+    if (confidenceMeta) confidenceMeta.textContent = 'กำลังเริ่ม session ใหม่';
+    if (metrics) metrics.textContent = 'กำลังเริ่ม session ใหม่…';
     try {
       let result;
       if (isFile) {
@@ -111,7 +155,10 @@
         })});
       }
       const body = await result.json();
+      if (token !== generation) return;
       if (!result.ok) throw new Error(body.error?.message || 'เริ่ม Live ไม่สำเร็จ');
+      if (typeof body.session_id !== 'string') throw new Error('API ไม่ส่ง session_id · รีสตาร์ต backend');
+      activeSession = body.session_id;
       stop.disabled = false;
       report(sourceType.value === 'file'
         ? 'กำลังเล่นคลิปต่อเนื่อง · หากเครื่องช้าจะเล่นช้าลงเพื่อไม่ทิ้งเฟรม · ' + deviceSummary(body.device_components, body.device_used)
@@ -126,9 +173,14 @@
         confidenceList.replaceChildren(waiting);
       }
       if (confidenceMeta) confidenceMeta.textContent = 'กำลังวิเคราะห์';
-      socket = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/api/live/events');
-      socket.onmessage = ev => {
-        const msg = JSON.parse(ev.data);
+      const connection = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host +
+        '/api/live/events?session_id=' + encodeURIComponent(activeSession));
+      socket = connection;
+      connection.onmessage = ev => {
+        if (token !== generation || socket !== connection) return;
+        let msg;
+        try { msg = JSON.parse(ev.data); } catch (_) { report('WebSocket ส่งข้อมูลไม่ถูกต้อง'); return; }
+        if (msg.session_id !== activeSession) return;
         if (msg.type === 'preview' && typeof msg.jpeg_b64 === 'string') {
           preview.src = 'data:image/jpeg;base64,' + msg.jpeg_b64; preview.hidden = false;
         } else if (msg.type === 'confidence') {
@@ -144,27 +196,27 @@
           const devices = msg.device_components ? ' · ' + deviceSummary(msg.device_components) : '';
           renderMetrics(msg);
           report(msg.state + (msg.reason ? ' · ' + msg.reason : '') + devices + replayHint + ' · scanned ' + msg.frames_face_scanned + '/' + msg.frames_received);
-          if (['stopped','degraded','error'].includes(msg.state)) { start.disabled = false; stop.disabled = true; }
+          if (['stopped','degraded','error'].includes(msg.state)) finishSession();
         }
       };
-      socket.onerror = () => report('WebSocket ขาดการเชื่อมต่อ · ตรวจสถานะ API และ log ของ server');
-      socket.onclose = () => {
-        if (stop.disabled) return;
-        fetch('/api/live/status').then(r => r.json()).then(body => {
-          if (['stopped', 'degraded', 'error', 'idle'].includes(body.status)) {
-            report('WebSocket ปิด · session ' + body.status + (body.reason ? ' · ' + body.reason : ''));
-            start.disabled = false; stop.disabled = true;
-            renderMetrics(body);
-          } else {
-            report('WebSocket หลุด · session ยัง ' + body.status + ' · กดเริ่มใหม่หลังหยุด session');
-          }
-        }).catch(() => report('WebSocket ปิดและอ่านสถานะ session ไม่ได้ · ตรวจ API'));
+      connection.onerror = () => {
+        if (token === generation && socket === connection) report('WebSocket ขาดการเชื่อมต่อ · กำลังตรวจสถานะ API');
       };
-    } catch (err) { report(err.message); start.disabled = false; }
+      connection.onclose = () => {
+        if (token !== generation || socket !== connection || !start.disabled) return;
+        pollStatus(token, body.session_id);
+      };
+    } catch (err) {
+      if (token === generation) { report(err.message); finishSession(); }
+    }
   });
   stop.addEventListener('click', async () => {
     stop.disabled = true;
     try { await request('/api/live/stop', 'POST'); report('กำลังหยุดและระบายเฟรมที่รับแล้ว'); }
     catch (err) { report(err.message); stop.disabled = false; }
+  });
+  window.addEventListener('beforeunload', () => {
+    clearTimeout(statusTimer);
+    if (socket) socket.close();
   });
 }());

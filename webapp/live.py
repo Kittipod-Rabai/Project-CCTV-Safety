@@ -5,6 +5,7 @@ import base64
 import queue
 import threading
 import time
+import uuid
 from collections import deque
 from pathlib import Path
 
@@ -19,13 +20,15 @@ from webapp.models import resolve_device
 
 class LiveSession:
     def __init__(self, source_type, source, model, device, registry, settings, weights_dir,
-                 device_requested="auto"):
+                 device_requested="auto", capture_factory=None, face_anonymizer_factory=None):
         self.source_type = source_type
         self.source = source
         self.model = model
         self.device = resolve_device(device)
         self.device_requested = device_requested or "auto"
         self.registry = registry
+        self._capture_factory = capture_factory or cv2.VideoCapture
+        self._face_anonymizer_factory = face_anonymizer_factory or YuNetFaceAnonymizer
         self.settings = settings
         self.weights_dir = weights_dir
         self.state = "starting"
@@ -35,9 +38,14 @@ class LiveSession:
         self.frames_face_scanned = 0
         self.source_fps = None
         self.started_at = time.time()
+        self.session_id = uuid.uuid4().hex
         self.started_monotonic = time.monotonic()
         self._stop = threading.Event()
         self._worker_failed = threading.Event()
+        self._capture_done = threading.Event()
+        self._finished = threading.Event()
+        self._outcome = "stopped"
+        self._state_lock = threading.Lock()
         self._frames = queue.Queue(maxsize=12)
         self._events = queue.Queue(maxsize=64)
         self._metrics_lock = threading.Lock()
@@ -47,16 +55,43 @@ class LiveSession:
         self.on_finish = None
         self._capture_thread = threading.Thread(target=self._capture, daemon=True)
         self._worker_thread = threading.Thread(target=self._process, daemon=True)
+        self._finish_thread = threading.Thread(target=self._finish, daemon=True)
 
     def start(self):
         self.state = "running"
         self._worker_thread.start()
         self._capture_thread.start()
+        self._finish_thread.start()
 
     def stop(self):
         self._stop.set()
-        if self.state == "running":
+        with self._state_lock:
+            if self.state == "running":
+                self.state = "stopping"
+
+    def wait(self, timeout):
+        return self._finished.wait(timeout)
+
+    def _fail(self, reason, outcome="error"):
+        with self._state_lock:
+            if self._outcome != "error":
+                self._outcome, self.reason = outcome, reason
             self.state = "stopping"
+        self._stop.set()
+
+    def _finish(self):
+        # Cleanup must wait until VideoCapture and inference have both released the upload.
+        self._capture_thread.join()
+        self._worker_thread.join()
+        try:
+            if self.on_finish:
+                self.on_finish()
+        except Exception:
+            self._fail("cleanup_failed")
+        with self._state_lock:
+            self.state = self._outcome
+        self.publish({"type": "health", **self.status()})
+        self._finished.set()
 
     def status(self):
         with self._metrics_lock:
@@ -67,7 +102,7 @@ class LiveSession:
                 for name, samples in self._timings.items() if samples
             }
         elapsed = max(0.001, time.monotonic() - self.started_monotonic)
-        return {"state": self.state, "device_requested": self.device_requested,
+        return {"state": self.state, "session_id": self.session_id, "device_requested": self.device_requested,
                 "device_used": self.device,
                 "device_components": {"yolo": self.device, "x3d": self.device, "yunet": "cpu"},
                 "frames_received": self.frames_received, "frames_processed": self.frames_processed,
@@ -83,32 +118,32 @@ class LiveSession:
             self._timings[name].append(max(0.0, float(elapsed_ms)))
 
     def publish(self, event):
+        event = {**event, "session_id": self.session_id}
         try:
             self._events.put_nowait(event)
         except queue.Full:
-            # Preserve model/health events by evicting an old preview first.
-            try:
-                old = self._events.get_nowait()
-                if old.get("type") != "preview":
-                    self._events.put_nowait(old)
-                    return
-                self._events.put_nowait(event)
-            except queue.Empty:
-                pass
-            except queue.Full:
-                pass
+            # Never lose terminal health: consumers must be able to finish even when
+            # disconnected/slow. This is a bounded display feed, not durable event storage.
+            if event.get("type") != "preview":
+                try:
+                    self._events.get_nowait()
+                except queue.Empty:
+                    pass
+                try:
+                    self._events.put_nowait(event)
+                except queue.Full:
+                    pass
 
     def _capture(self):
-        cap = cv2.VideoCapture(self.source)
-        if not cap.isOpened():
-            self.state, self.reason = "error", "source_unavailable"
-            self.publish({"type": "health", **self.status()})
-            self._frames.put(None)
-            return
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        self.source_fps = round(float(fps), 3) if fps and fps > 0 else None
-        pace = 1.0 / fps if self.source_type == "file" and fps and fps > 0 else 0.0
+        cap = None
         try:
+            cap = self._capture_factory(self.source)
+            if not cap.isOpened():
+                self._fail("source_unavailable")
+                return
+            fps = cap.get(cv2.CAP_PROP_FPS)
+            self.source_fps = round(float(fps), 3) if fps and fps > 0 else None
+            pace = 1.0 / fps if self.source_type == "file" and fps and fps > 0 else 0.0
             index = 0
             wall_start = time.monotonic()
             while not self._stop.is_set():
@@ -116,12 +151,12 @@ class LiveSession:
                 ok, frame = cap.read()
                 self._record_timing("decode", (time.monotonic() - t0) * 1000)
                 if not ok:
+                    if not self.frames_received:
+                        self._fail("decode_failed")
                     break
                 self.frames_received += 1
                 if frame is None or frame.size == 0 or frame.shape[0] * frame.shape[1] > config.MAX_VIDEO_PIXELS:
-                    self.state, self.reason = "error", "frame_dimensions_unsupported"
-                    self._stop.set()
-                    self.publish({"type": "health", **self.status()})
+                    self._fail("frame_dimensions_unsupported")
                     break
                 if self.source_type == "file" and fps and fps > 0:
                     source_time = index / fps
@@ -130,49 +165,41 @@ class LiveSession:
                 captured_at = time.monotonic()
                 # Back-pressure the source; never drop a frame already returned by VideoCapture.
                 frame_item = (frame, source_time, captured_at)
-                try:
-                    self._frames.put(frame_item, timeout=0.25)
-                except queue.Full:
-                    if self._worker_failed.is_set():
+                while not self._worker_failed.is_set():
+                    try:
+                        self._frames.put(frame_item, timeout=0.05)
                         break
-                    if self.source_type == "file":
-                        # A replay file can be slowed by back-pressure without losing frames.
-                        # Keep the frame already read and resume when the worker frees a slot.
-                        self._frames.put(frame_item)
-                        index += 1
-                        continue
-                    if not self._stop.is_set():
-                        self.state, self.reason = "degraded", "processing_overload"
-                        self._stop.set()
-                    self.publish({"type": "health", **self.status()})
-                    self._frames.put(frame_item)
-                    break
+                    except queue.Full:
+                        if self.source_type != "file":
+                            self._fail("processing_overload", "degraded")
                 index += 1
                 if pace:
-                    time.sleep(max(0.0, pace - (time.monotonic() - t0)))
+                    self._stop.wait(max(0.0, pace - (time.monotonic() - t0)))
+        except Exception:
+            self._fail("capture_failed")
         finally:
-            cap.release()
-            # Drain every captured frame before terminating the inference worker.
-            if self._worker_failed.is_set():
-                while True:
-                    try:
-                        self._frames.get_nowait()
-                    except queue.Empty:
-                        break
-            else:
-                self._frames.put(None)
+            try:
+                if cap is not None:
+                    cap.release()
+            except Exception:
+                self._fail("capture_release_failed")
+            finally:
+                self._capture_done.set()
 
     def _process(self):
         try:
-            anonymizer = YuNetFaceAnonymizer(self.weights_dir, device="cpu")
+            anonymizer = self._face_anonymizer_factory(self.weights_dir, device="cpu")
             history = deque(maxlen=250)
             recent_entries = deque(maxlen=250)
             last_yolo = last_x3d = -1.0
             last_candidate_event = -1.0
             while True:
-                item = self._frames.get()
-                if item is None:
-                    break
+                try:
+                    item = self._frames.get(timeout=0.05)
+                except queue.Empty:
+                    if self._capture_done.is_set():
+                        break
+                    continue
                 frame_started = time.monotonic()
                 frame, t, captured_at = item
                 stage_started = time.monotonic()
@@ -208,7 +235,7 @@ class LiveSession:
                                       **summary})
                         last_candidate_event = t
                 if len(history) >= FRAMES and t - last_x3d >= 0.5:
-                    first_t = t - 2.0
+                    first_t = max(0.0, t - 2.0)
                     clip_source = [item for ts, item in history if first_t <= ts <= t]
                     if len(clip_source) >= FRAMES:
                         import numpy as np
@@ -232,11 +259,8 @@ class LiveSession:
                 if now - self._last_health_at >= 2.0:
                     self.publish({"type": "health", **self.status()})
                     self._last_health_at = now
-            if self.state not in {"degraded", "error"}:
-                self.state = "stopped"
-            self.publish({"type": "health", **self.status()})
         except Exception as exc:  # fail closed: no original frame is ever published
-            self.state, self.reason = "error", type(exc).__name__
+            self._fail(type(exc).__name__)
             self._worker_failed.set()
             self._stop.set()
             while True:
@@ -244,10 +268,6 @@ class LiveSession:
                     self._frames.get_nowait()
                 except queue.Empty:
                     break
-            self.publish({"type": "health", **self.status()})
-        finally:
-            if self.on_finish:
-                self.on_finish()
 
 
 def validate_source(source_type: str, source: str, repo_root: Path) -> str:
