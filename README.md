@@ -48,7 +48,7 @@ Stage 1 ใช้โมเดลตรวจจับ 6 คลาสเชิง
 - Experiment: YOLOv8n เป็น baseline และ YOLOv8s เป็นตัวเปรียบเทียบภายใต้ config เดียวกัน
 - Recorded pilot runtime: Kaggle GPU. Colab remains an optional reproducibility workflow.
 - หน้า Upload & Analyze เป็นเว็บต้นแบบ FastAPI สำหรับเรียกโมเดลจริงในเครื่อง;
-  Live replay เรียกโมเดลจริง และ Alert / Logs บันทึกผลลง SQLite แล้ว; Dashboard และจอมอนิเตอร์ตัวอย่างยังเป็นข้อมูลจำลอง
+  Live replay เรียกโมเดลจริง, Alert / Logs บันทึกผลลง SQLite และ Dashboard สรุปประวัติจริงแล้ว; จอมอนิเตอร์ตัวอย่างยังเป็นข้อมูลจำลอง
 
 ---
 
@@ -69,7 +69,7 @@ Project-CCTV-Safety/
 │   ├── evaluation.md              # Metrics และ error-analysis protocol
 │   └── workflow.md                # End-to-end reproducible workflow
 ├── mockup/
-│   ├── index.html                 # UI Mockup (Dashboard, Live Monitoring, Alert Logs)
+│   ├── index.html                 # Local pilot UI (Dashboard, Live Monitoring, Alert Logs)
 │   └── README.md                  # คำอธิบาย Mockup และ Code Map
 ├── notebooks/
 │   └── yolov8_baseline.ipynb      # Jupyter Notebook สำหรับ Pipeline การเทรนและประเมินผล

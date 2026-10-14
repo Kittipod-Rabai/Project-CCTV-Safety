@@ -344,6 +344,10 @@ def create_app(registry=None, weights_dir: Path | None = None, face_anonymizer_f
         return {**_envelope(None, is_model_output=False), "status": "ok", "device": device,
                 "runtime": runtime_status(), "models": models}
 
+    @app.get("/api/dashboard")
+    def dashboard(period: Literal["today", "7d", "all"] = "7d"):
+        return store.dashboard(period=period)
+
     @app.get("/api/logs")
     def list_logs(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100),
                   q: str = Query("", max_length=200), status: Literal["new", "ack", "closed"] | None = None,

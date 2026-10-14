@@ -214,6 +214,53 @@ class EventStore:
         with self.connection() as con:
             return [dict(row) for row in con.execute("SELECT * FROM analysis_runs ORDER BY created_at DESC,id DESC LIMIT 100")]
 
+    def dashboard(self, period="7d"):
+        """Count stored summary rows, not incidents, people, or frame observations.
+
+        Calendar periods use Bangkok dates. Daily counts use first recorded_at;
+        an existing Live summary updated today stays in its original day's bucket.
+        """
+        if period not in {"today", "7d", "all"}:
+            raise ValueError("Unknown dashboard period")
+        timestamp = datetime.now(UTC)
+        local = timestamp.astimezone(BANGKOK)
+        midnight = local.replace(hour=0, minute=0, second=0, microsecond=0)
+        chart_start = midnight - timedelta(days=6)
+        lower = midnight if period == "today" else chart_start if period == "7d" else None
+        upper = timestamp.isoformat(timespec="microseconds")
+        lower_utc = lower.astimezone(UTC).isoformat(timespec="microseconds") if lower else None
+        clauses = "recorded_at<=?" + (" AND recorded_at>=?" if lower else "")
+        params = [upper, lower_utc] if lower else [upper]
+        run_clauses = clauses.replace("recorded_at", "created_at")
+        daily = {(chart_start + timedelta(days=n)).date().isoformat(): 0 for n in range(7)}
+        by_type = {kind: 0 for kind in sorted(EVENT_TYPES)}
+        by_status = {status: 0 for status in sorted(STATUSES)}
+        with self.connection() as con:
+            con.execute("BEGIN")  # All history panels share one read snapshot.
+            for row in con.execute("SELECT event_type,status,COUNT(*) AS n FROM observations WHERE " +
+                                   clauses + " GROUP BY event_type,status", params):
+                by_type[row["event_type"]] = by_type.get(row["event_type"], 0) + row["n"]
+                by_status[row["status"]] = by_status.get(row["status"], 0) + row["n"]
+            for row in con.execute("SELECT substr(datetime(recorded_at,'+7 hours'),1,10) AS day,COUNT(*) AS n "
+                                   "FROM observations WHERE " + clauses + " AND recorded_at>=? GROUP BY day",
+                                   [*params, chart_start.astimezone(UTC).isoformat(timespec="microseconds")]):
+                if row["day"] in daily:
+                    daily[row["day"]] = row["n"]
+            run_states = {row["state"]: row["n"] for row in con.execute(
+                "SELECT state,COUNT(*) AS n FROM analysis_runs WHERE " + run_clauses + " GROUP BY state", params)}
+            pending_total = con.execute("SELECT COUNT(*) FROM observations WHERE status='new'").fetchone()[0]
+            latest = con.execute("SELECT o.*,r.source_label,r.source_type,r.state AS run_state FROM observations o "
+                                 "JOIN analysis_runs r ON r.id=o.run_id WHERE " +
+                                 clauses.replace("recorded_at", "o.recorded_at") +
+                                 " ORDER BY o.recorded_at DESC,o.id DESC LIMIT 5", params).fetchall()
+        return {"period": period, "timezone": "Asia/Bangkok", "time_basis": "recorded_at",
+                "generated_at": upper, "range_start": lower_utc, "range_end": upper,
+                "total": sum(by_type.values()), "by_type": by_type, "by_status": by_status,
+                "pending_total": pending_total,
+                "run_count": sum(run_states.values()), "run_states": run_states,
+                "daily": [{"date": day, "count": n} for day, n in daily.items()],
+                "latest": [self._item(row) for row in latest]}
+
     def get(self, event_id):
         with self.connection() as con:
             con.execute("BEGIN")

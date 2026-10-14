@@ -457,3 +457,46 @@ fabricated. Invalid parameters return the existing 400 error envelope. Storage
 unavailability is explicit; clients must not replace missing history with mock
 rows. History has no automatic deletion or retroactive import of the old 90
 mock rows. Browser history refreshes on opening the Logs page or using Refresh.
+
+## 8. Dashboard from persisted observations (2026-10-14)
+
+`GET /api/dashboard?period=7d` accepts `today`, `7d` (default), or `all`.
+`today` begins at midnight in Asia/Bangkok. Dashboard `7d` begins at midnight
+six days before today, covering seven calendar dates including today. This is
+different from the Logs `7d` rolling 168-hour window. Both end at the returned
+`generated_at` UTC timestamp. `all` has no lower bound. Invalid periods return
+400; storage failures return the existing 503 `storage_unavailable` envelope.
+
+The response includes:
+
+- `period`, `timezone` (`Asia/Bangkok`), `time_basis` (`recorded_at`),
+  `generated_at`, `range_start` (UTC or null), and `range_end` (UTC).
+- `total`, `by_type` (all known types, including zero counts), and `by_status`
+  (`new`, `ack`, `closed`): count **summary rows**, one per run/type/model.
+  They do not sum `observation_count` or represent unique people, confirmed
+  incidents, alerts, or cameras. Non-fight and derived PPE rows are included.
+- `pending_total`: unfiltered count of `new` rows, for the Logs navigation badge.
+- `run_count` and `run_states`: count runs by `created_at` in the selected period,
+  including runs with zero observations. Observation counts use first
+  `recorded_at`, so runs and observations have independently stated time bases.
+- `daily`: seven `{date: "YYYY-MM-DD", count: N}` entries in ascending Bangkok
+  date order, covering today and the previous six days within the selected
+  period. Dates outside `today` have zero counts when that period is selected.
+  For `all`, the daily chart is a recent subset of the all-time total.
+- `latest`: up to five observation rows in the same shape as Logs items, sorted
+  by first recording time descending, then ID descending.
+
+All history panels are queried in one SQLite read transaction. An active Live
+summary keeps its original date and row count when more observations arrive;
+review changes update status totals without increasing row counts.
+
+The browser separately reads `GET /api/live/status` for the current process's
+latest single-session status. It is independent of the history period and is
+not a count of online cameras. After a restart, persisted run history remains
+while the process starts with no active/recent in-memory Live session.
+
+Dashboard refreshes on navigation, period selection, manual refresh, and every
+10 seconds while visible. Period changes discard older responses. Automatic
+refresh retains the visible snapshot until its replacement arrives; failures
+clear the affected values and display an error, never a fabricated zero or
+mock result. History and Live failures are displayed independently.

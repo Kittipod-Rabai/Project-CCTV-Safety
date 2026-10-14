@@ -2,7 +2,7 @@
 
 วันที่จัดเตรียม: 14 ตุลาคม 2026
 
-เอกสารนี้ใช้ตรวจคำกล่าวใน [สไลด์](slides.md) และ [บทพูด](speaker-notes.md) เป็น snapshot สำหรับการนำเสนอ ไม่แทนที่สถานะโครงการหรือแก้ไขเอกสารต้นฉบับ ผลตรวจ Pipeline/Live อยู่ใน [รายงานงาน 1](pipeline-live-verification.md) และผลตรวจประวัติ SQLite/Logs อยู่ใน [รายงานงาน 2](history-verification.md) งาน 1–2 ทำงานจริงระดับต้นแบบบนเครื่องทดสอบแล้ว งาน 3–5 ยังไม่เริ่ม
+เอกสารนี้ใช้ตรวจคำกล่าวใน [สไลด์](slides.md) และ [บทพูด](speaker-notes.md) เป็น snapshot สำหรับการนำเสนอ ไม่แทนที่สถานะโครงการหรือแก้ไขเอกสารต้นฉบับ ผลตรวจ Pipeline/Live อยู่ใน [รายงานงาน 1](pipeline-live-verification.md) และผลตรวจประวัติ SQLite/Logs อยู่ใน [รายงานงาน 2](history-verification.md) ผล Dashboard อยู่ใน [รายงานงาน 3](dashboard-verification.md) งาน 1–3 ทำงานจริงระดับต้นแบบบนเครื่องทดสอบแล้ว งาน 4–5 ยังไม่เริ่ม
 
 ## ระดับหลักฐานที่ใช้
 
@@ -120,12 +120,12 @@ Pipeline รวมระบุ `tracking_trigger_shadow` และ `evaluate_eve
 
 - Live pilot: มี implementation จริงสำหรับหนึ่ง stream พร้อมเส้นทาง replay และ RTSP; การตรวจครั้งนี้ยังไม่ยืนยัน RTSP กล้องจริงหรือ benchmark SLA
 - จอมอนิเตอร์ตัวอย่างในหน้า Live: mock แยกจากแผง Live pilot
-- Dashboard: KPI/กราฟ/สถานะกล้องจำลอง
+- Dashboard: ยอดแถวสรุปผลโมเดล สถานะตรวจสอบ รอบวิเคราะห์ และกราฟรายวันจาก SQLite ส่วนสถานะ Live อ่าน API ของเซสชันล่าสุดใน backend process นี้ ดู [รายงานงาน 3](dashboard-verification.md)
 - Alert Logs: ปัจจุบันอ่านผลโมเดลจาก SQLite ผ่าน API มีตัวกรอง แบ่งหน้า และเปลี่ยนสถานะตรวจสอบ; ไม่ใช้ 90 รายการสุ่มเดิมแล้ว ดู [รายงานงาน 2](history-verification.md)
 - จัดการกล้อง/ตั้งค่าระบบ: มีเมนู placeholder
 - มีฐานข้อมูลประวัติผลตรวจจับ SQLite แล้ว แต่ยังไม่มีบัญชีผู้ใช้และการแจ้งเตือนภายนอก; ไม่ระบุผู้รับผิดชอบสมมติ
 
-ห้ามอ้างว่าเป็นระบบหลายกล้องพร้อมใช้งานจริงจากจำนวนกล้องบน Dashboard
+Dashboard ไม่รายงานจำนวนกล้องออนไลน์หรือความเร็วที่สมมติขึ้น สถานะเซสชันหนึ่งรายการไม่ใช่หลักฐานรองรับระบบหลายกล้อง
 
 ## E08 — ประวัติการตรวจครั้งแรก ก่อนดำเนินงาน 1–2
 
@@ -145,9 +145,9 @@ Pipeline รวมระบุ `tracking_trigger_shadow` และ `evaluate_eve
 
 ## E09 — เอกสารที่อาจให้สถานะต่างกัน
 
-อัปเดตหลังดำเนินงาน 1–2: ชุดทดสอบรวมผ่าน 285 tests และมีการตรวจผ่าน browser รวม Pipeline/Live, fallback, การเปลี่ยนไฟล์ และประวัติ SQLite ที่คงอยู่หลังเปิด backend ใหม่ รายการใน E08 เป็นประวัติการตรวจครั้งแรก อ่านขอบเขตจาก [รายงานงาน 1](pipeline-live-verification.md) และ [รายงานงาน 2](history-verification.md) ผลนี้ยืนยันการทำงาน โดยไม่ได้เพิ่มผลประเมินความแม่นยำของโมเดล
+อัปเดตหลังดำเนินงาน 1–3: ชุดทดสอบรวมผ่าน 287 tests และมีการตรวจผ่าน browser รวม Pipeline/Live, fallback, การเปลี่ยนไฟล์ และประวัติ SQLite ที่คงอยู่หลังเปิด backend ใหม่ รายการใน E08 เป็นประวัติการตรวจครั้งแรก อ่านขอบเขตจาก [รายงานงาน 1](pipeline-live-verification.md) และ [รายงานงาน 2](history-verification.md) ผลนี้ยืนยันการทำงาน โดยไม่ได้เพิ่มผลประเมินความแม่นยำของโมเดล
 
-- [Project status](../project_status.md) มี feature update วันที่ 14 ตุลาคม 2026 ระบุ Live inference และ SQLite/Logs แล้ว ให้แยก Dashboard/จอมอนิเตอร์จำลองออกจาก Live pilot และประวัติจริงตาม E07
+- [Project status](../project_status.md) มี feature update วันที่ 14 ตุลาคม 2026 ระบุ Live inference และ SQLite/Logs แล้ว ปัจจุบันมี Dashboard จากประวัติจริงเพิ่มแล้ว ให้แยกเฉพาะจอมอนิเตอร์จำลองออกจากส่วนจริงตาม E07
 - [Live runtime profiles](../live_runtime_profiles.md) บางช่วงบรรยาย YuNet บน CUDA และ Auto ที่ต้องพร้อมทั้ง pipeline แต่ `webapp/models.py` และ `webapp/live.py` ปัจจุบันให้ YOLO/X3D ใช้ device ที่เลือก และ YuNet ใช้ CPU ไม่อ้างว่า inference ทุกส่วนอยู่บน GPU
 - [Final report เก่า](../../final_report.md) มีข้อความ BLOCKED/ยังไม่ฝึกในเนื้อหาประวัติ แต่มีหมายเหตุ superseded จึงไม่ใช้ข้อความเก่าแทนผล run ปัจจุบัน
 - เอกสารนี้บันทึกความต่างเพื่อการนำเสนอ ไม่ได้แก้เอกสารเดิมหรือรับรองความถูกต้องทุกข้อความของเอกสารต้นทาง

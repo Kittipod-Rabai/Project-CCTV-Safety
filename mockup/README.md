@@ -1,10 +1,10 @@
-# CCTV Safety — Draft Mockup (Handoff Package)
+# CCTV Safety — Local Pilot
 
 
-> **สถานะ (2026-10-14):** Educational pilot — Dashboard และจอมอนิเตอร์ตัวอย่างยังใช้ข้อมูลจำลอง
+> **สถานะ (2026-10-14):** Educational pilot — Dashboard สรุปประวัติจริงจาก SQLite แล้ว จอมอนิเตอร์ตัวอย่างยังใช้ข้อมูลจำลอง
 > ส่วน Upload & Analyze และ Live replay เรียกโมเดลจริง และ Alert / Logs อ่านประวัติผลโมเดลจาก SQLite ผ่าน backend แล้ว
 > มีการบันทึกรับทราบ/ปิดรายการ แต่ไม่ใช่การยืนยันเหตุ ไม่ได้ส่งแจ้งเตือนภายนอก และยังไม่มีระบบบัญชีผู้ใช้
-> ดู [หลักฐานงาน 2](../docs/presentation/history-verification.md)
+> ดู [หลักฐานงาน 2](../docs/presentation/history-verification.md) และ [หลักฐาน Dashboard](../docs/presentation/dashboard-verification.md)
 >
 > **หมายเหตุ Schema:** หน้า mock ใช้ประเภทเหตุการณ์จำลอง 4 กลุ่มเพื่อสาธิต UI
 > เท่านั้น ไม่ใช่ class list ของโมเดล ปัจจุบัน Stage 1 ใช้ detector schema v2
@@ -19,8 +19,12 @@
 
 ```text
 mockup/
-├── index.html      # UI ทั้งหมด (หน้า mock 3 หน้า + โครง HTML/CSS ของหน้า Upload & Analyze)
-├── analyze.js      # logic ของหน้า Upload & Analyze: เรียก API จริง, วาด box บน canvas
+├── index.html      # โครง HTML/CSS และ Live demo monitors
+├── dashboard.js    # ภาพรวม SQLite และสถานะ Live ผ่าน API จริง
+├── logs.js         # ประวัติและสถานะตรวจสอบผ่าน API จริง
+├── analyze.js      # Upload & Analyze, วาด box บน canvas
+├── live.js         # เริ่ม/หยุด Live pilot และรับ WebSocket
+├── live-flow.js    # ตัวช่วยเลือกไฟล์และอุปกรณ์ Live
 └── README.md
 ```
 
@@ -46,13 +50,13 @@ mockup/
 
 ### หน้า mock อื่นๆ
 
-เฉพาะ Dashboard และจอมอนิเตอร์ตัวอย่างเปิดจากไฟล์ได้; Upload & Analyze, Live pilot และ Logs ต้องใช้ backend หากอ่าน API ไม่ได้ Logs จะแสดง error โดยไม่ใช้ข้อมูลสุ่มแทน
+เฉพาะจอมอนิเตอร์ตัวอย่างแสดงข้อมูลจำลองจากไฟล์ได้ ส่วน Dashboard, Upload & Analyze, Live pilot และ Logs ต้องใช้ backend เมื่ออ่าน API ไม่ได้ Dashboard/Logs จะแสดง error โดยไม่ใช้ข้อมูลสุ่มแทน
 
 ---
 
 ##  หน้าจอที่มีใน Mockup
 
-- **Dashboard:** KPI/กราฟ/สถานะกล้องยังเป็นข้อมูลจำลอง
+- **Dashboard:** จำนวนแถวสรุปผลโมเดล รอตรวจสอบ รอบวิเคราะห์ ผลล่าสุด และกราฟรายวันจาก SQLite พร้อมสถานะเซสชันจาก Live API ดูรายละเอียดเวลา/หน่วยนับในหัวข้อด้านล่าง
 - **Live CCTV Monitoring:** แผง Live replay เรียกโมเดลจริง; จอมอนิเตอร์ตัวอย่างด้านล่างเป็น mock ส่วน RTSP ยังไม่ยืนยันกับกล้องจริง
 - **Alert / Logs:** ประวัติผลตรวจจับจริงจาก SQLite พร้อมค้นหา ช่วงเวลาบันทึก แหล่งไฟล์ ประเภทผล สถานะตรวจสอบ แบ่งหน้า และ audit การเปลี่ยนสถานะ ไม่เก็บภาพ/คลิป
 - **Upload & Analyze:** วิเคราะห์ภาพ/วิดีโอด้วย YOLO/X3D ผ่าน API
@@ -108,63 +112,21 @@ mockup/
 
 ---
 
-##  แผนที่โค้ด (Code Map)
+## โครงสร้างโค้ดปัจจุบัน
 
-`index.html` แบ่งเป็น 3 ส่วนใหญ่ — แก้ตรงไหนดูจากตารางนี้ (เลขบรรทัดโดยประมาณ)
+- `index.html`: โครงหน้าและ router `go(page)` ส่วน `CAMS`, `LOGS`, `SCENES` และ feed สุ่มใช้เฉพาะ Live demo monitors
+- `dashboard.js`: อ่าน `/api/dashboard` และ `/api/live/status` แสดง loading/empty/error และรีเฟรชทุก 10 วินาทีขณะเปิดหน้า Dashboard
+- `logs.js`: อ่านประวัติจาก `/api/logs` และบันทึกสถานะผ่าน PATCH
+- `analyze.js`: วิเคราะห์ไฟล์ผ่าน API และแสดงผลภาพ/วิดีโอ
+- `live.js` และ `live-flow.js`: Live pilot จริง แยกจากจอมอนิเตอร์จำลอง
 
-| บรรทัด | ส่วน | หมายเหตุ |
-|---:|:---|:---|
-| 7–521 | `<style>` ทั้งหมด | |
-| **8–18** | `:root` design tokens | **แก้สี/ธีมทั้งระบบที่นี่จุดเดียว** |
-| 344–354 | `.mock-banner`, `.sys-mock` | แถบ/ป้าย "ข้อมูลจำลอง" ของหน้า mock; กล่องสถานะ sidebar ซ่อนในหน้า analyze |
-| 356–500 | สไตล์ `az-*` ของหน้า Upload & Analyze | |
-| 526–574 | Sidebar + navigation (รวมเมนู `data-go="analyze"`) | |
-| 578–588 | TopBar (ชื่อหน้า, chip MOCKUP / "หน้าเรียก API จริง", นาฬิกา, avatar) | chip สลับตามหน้า ผ่าน `body[data-page]` |
-| 591–658 | HTML หน้า Dashboard | |
-| 661–699 | HTML หน้า Live Monitoring | |
-| 702–770 | HTML หน้า Alert / Logs | |
-| 773–913 | HTML หน้า Upload & Analyze (`#v-analyze`) | logic อยู่ใน `analyze.js` |
-| 917–935 | Modal รายละเอียดเหตุการณ์ | |
-| 937–1370 | `<script>` (mock) ทั้งหมด | |
-| **938–991** | **Mock data ทั้งหมด** | `CLS`, `CAMS`, `LOGS` |
-| 939 | `CLS` — นิยาม 4 classes | สี + ชื่อไทย + ระดับความรุนแรง |
-| 946 | `CAMS` — กล้อง 14 ตัว | id, โซน, สถานะ, fps |
-| 970–989 | สร้าง `LOGS` 90 รายการแบบสุ่ม | **ลบทิ้งทั้งบล็อกตอนต่อ API** |
-| 1008 | `go(page)` — สลับหน้า | router แบบง่ายๆ (ตั้ง `body[data-page]` ด้วย) |
-| 1024–1099 | กราฟ Dashboard (SVG เขียนเอง) | `spark()`, `bars()`, `donut()` |
-| 1102–1161 | `SCENES` — ฉากกล้องจำลอง | **ลบทิ้งเมื่อมี video stream จริง** |
-| 1163 | `camHTML()` — สร้าง tile กล้อง + bounding box | |
-| 1237 | `pushFeed()` — live event stream | เปลี่ยนเป็น WebSocket handler |
-| 1270 | `filtered()` — ตัวกรองตาราง | ย้ายไป query string ฝั่ง server |
-| 1290 | `render()` — วาดตาราง + pagination | |
-| 1333 | `openModal()` — modal รายละเอียด | |
-| 1372 | `<script src="analyze.js">` | โหลดหลัง script mock |
+## Dashboard จากประวัติจริง
 
-`analyze.js` (IIFE เดียว): ค่าคงที่จากสัญญา API → `callApi()` (แปลง error เป็นข้อความไทย) → `loadHealth()` →
-`resetResults()` (ล้างผลทั้งหมด + ยกเลิก response รอบเก่า) → `onFileChange()` + `probeVideo()` →
-`drawScene()` / `drawLabel()` (ใช้ร่วมกันทั้งภาพและวิดีโอ) → `renderNow()` (แผงขวา + ตาราง PPE) →
-โหมด frames: `drawFrame()` / โหมด player: `nearestSample()`, `contentRect()`, `drawOverlay()` →
-ไทม์ไลน์: `setupTrack()`, `trackFrac()`, `renderSeekMarks()` → ตัวกรอง: `applyViewControls()`, `setupFilters()` →
-`stage1Summary()` / `renderStage1()` → `renderStage2()` → `analyze()`
+เลือกวันนี้, 7 วันตามปฏิทินรวมวันนี้ หรือทั้งหมด โดยใช้ Asia/Bangkok จำนวนรายการคือแถวสรุปต่อรอบ/ประเภทผล/โมเดล รวม Non-fight และ PPE จากกฎ ไม่ใช่จำนวนเหตุ คน กล้อง หรือจำนวนกล่องทั้งหมด
 
----
+กราฟใช้ `recorded_at` ครั้งแรก ไม่ใช่เวลาในวิดีโอ และแสดง 7 วันรวมวันนี้ภายในช่วงที่เลือก กรณีเลือกทั้งหมด ยอดรวมและประเภทผลครอบคลุมทั้งหมด แต่กราฟรายวันแสดงเฉพาะ 7 วันล่าสุด ต่างจากตัวกรอง 7d ของ Logs ที่เป็นช่วงย้อนหลัง 7 × 24 ชั่วโมง
 
-## Mock → Real: ต้องเปลี่ยนอะไรบ้าง (หน้า mock)
-
-| ตอนนี้ (mock) | ต้องเปลี่ยนเป็น ||
-|:---|:---|:---|
-| `LOGS` สุ่มในเบราว์เซอร์ | `GET /api/v1/events` | 
-| `CAMS` hardcode 14 ตัว | `GET /api/v1/cameras` | 
-| ตัวเลข KPI hardcode ใน HTML | `GET /api/v1/stats/summary` | 
-| กราฟสุ่มใน `bars()` / `donut()` | `GET /api/v1/stats/hourly`, `/by-class` | 
-| `SCENES` ฉาก CSS | `<video>` + HLS / WebRTC | 
-| bounding box ตำแหน่งคงที่ | WebSocket `detection` frame | 
-| `pushFeed()` สุ่มทุก 4.2 วิ | WebSocket `alert` event | 
-| `filtered()` กรองใน JS | query params → server | 
-| ปุ่ม "รับทราบเหตุการณ์" ไม่ทำอะไร | `PATCH /api/v1/events/{id}` | 
-
-Endpoint ในตารางนี้เป็นแนวคิดสำหรับอนาคต **ยังไม่มีอยู่จริง** — API ที่มีจริงตอนนี้มีเฉพาะ
-`/api/health`, `/api/stage1/analyze`, `/api/stage2/analyze` (ใช้ในหน้า Upload & Analyze)
+จำนวนรอบนับตามเวลาเริ่มรอบ รวมรอบที่ไม่พบผลตรวจจับ ส่วนสถานะ Live เป็นเซสชันล่าสุดของ backend process นี้ แยกจากช่วงประวัติ หลัง restart ประวัติยังอยู่แต่สถานะ Live กลับเป็นยังไม่มีเซสชัน หากฐานข้อมูลใช้ไม่ได้จะล้างยอด/กราฟเก่าและแสดง error สถานะ Live ที่อ่านได้ยังแสดงแยกกัน
 
 ---
 

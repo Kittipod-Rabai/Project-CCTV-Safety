@@ -112,7 +112,7 @@ def test_index_loads_analyze_js(tree):
     assert any(s.split("?")[0].rsplit("/", 1)[-1] == "analyze.js" for s in srcs), srcs
 
 
-@pytest.mark.parametrize("view_id", ["v-dashboard", "v-live"])
+@pytest.mark.parametrize("view_id", ["v-live"])
 def test_mock_views_show_mock_data_banner(tree, view_id):
     assert MOCK_TEXT in by_id(tree, view_id).all_text()
 

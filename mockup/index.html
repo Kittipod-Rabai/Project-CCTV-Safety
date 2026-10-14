@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CCTV Safety — Draft Mockup</title>
+<title>CCTV Safety — Local Pilot</title>
 <style>
 :root{
   --bg:#0a0e13; --panel:#111823; --panel2:#161f2c; --panel3:#1c2635;
@@ -352,23 +352,23 @@ tbody tr:hover{background:var(--panel2)}
 .note{margin-top:16px;font-size:11.5px;color:var(--muted2);line-height:1.7;
   border-left:2px solid var(--line2);padding-left:12px}
 
-/* ---------- MOCK BANNER (dashboard / live / logs) ---------- */
+/* ---------- MOCK BANNER (Live demo monitors only) ---------- */
 .mock-banner{display:flex;align-items:center;gap:9px;flex:none;margin-bottom:14px;
   padding:8px 13px;border-radius:9px;border:1px dashed #7c5e12;background:#3a2d0a55;
   color:#fbbf24;font-size:12.5px;font-weight:700;letter-spacing:.2px}
 .mock-banner svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;flex:none}
 .mock-banner span{font-weight:500;color:#d6b45c;font-size:11.5px}
 .mock-banner{line-height:1.5}
-body:is([data-page="analyze"],[data-page="logs"]) .chip-mock{display:none}
+body:is([data-page="analyze"],[data-page="logs"],[data-page="dashboard"]) .chip-mock{display:none}
 /* sidebar system box holds mock numbers: label it, and hide it on the real-API view */
 .sys-mock{font-size:10px;font-weight:700;letter-spacing:.4px;color:#fbbf24;border:1px dashed #7c5e12;
   background:#3a2d0a55;border-radius:5px;padding:1px 7px;margin-bottom:5px;display:inline-block}
-body:is([data-page="analyze"],[data-page="logs"]) .side-foot{display:none}
+body:is([data-page="analyze"],[data-page="logs"],[data-page="dashboard"]) .side-foot{display:none}
 
 /* ---------- UPLOAD & ANALYZE (real API output) ---------- */
 .chip-real{display:none;font-size:10.5px;letter-spacing:.6px;font-weight:700;color:#4ade80;
   border:1px solid #166534;background:#052e1688;padding:3px 9px;border-radius:6px}
-body:is([data-page="analyze"],[data-page="logs"]) .chip-real{display:inline-block}
+body:is([data-page="analyze"],[data-page="logs"],[data-page="dashboard"]) .chip-real{display:inline-block}
 #v-analyze [hidden]{display:none!important}
 .az-top{margin-bottom:14px}
 .az-form{padding:14px 16px;display:flex;flex-direction:column;gap:12px}
@@ -646,6 +646,18 @@ body:is([data-page="analyze"],[data-page="logs"]) .chip-real{display:inline-bloc
   .live-demo{overflow:auto}
   .live-demo .live-body{overflow:visible}
 }
+body:is([data-page="analyze"],[data-page="logs"],[data-page="dashboard"]) #navLive{display:none}
+/* Real observation dashboard */
+.db-intro{padding:16px;margin-bottom:12px;display:flex;gap:18px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.db-intro h2{font-size:17px;margin:0 0 6px}.db-intro p{color:var(--muted);margin:0;font-size:12px}
+.db-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.db-controls label{font-size:12px;color:var(--muted)}
+.db-controls select{max-width:100%;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px}
+#dbMessage{font-size:12px;color:var(--muted);min-height:20px}.db-caption{font-size:11.5px;color:var(--muted);padding:0 16px;line-height:1.6}
+.db-series{padding:6px 16px 18px;display:grid;gap:9px}.db-bar{display:grid;grid-template-columns:minmax(110px,1fr) minmax(50px,1fr) 36px;align-items:center;gap:10px;font-size:12px}
+.db-bar meter{width:100%;height:16px;accent-color:var(--accent)}.db-bar meter::-webkit-meter-bar{background:var(--line);border:0}.db-bar meter::-webkit-meter-optimum-value{background:var(--accent)}.db-bar meter::-moz-meter-bar{background:var(--accent)}.db-bar b{text-align:right;font-family:var(--mono)}
+.db-live,.db-latest{padding:6px 16px 16px;display:grid;gap:10px;overflow-wrap:anywhere}.db-live p{font-size:12px;margin:0;line-height:1.6}
+.db-result{padding:10px 0;border-bottom:1px solid var(--line);font-size:12px;line-height:1.7}.db-result small{display:block;color:var(--muted)}
+.db-session-state{font-size:20px!important;letter-spacing:0!important}.db-empty{font-size:12px;color:var(--muted)}
 </style>
 <style>
 /* Live page desktop proportions: preview first, results beside it, controls on one readable row. */
@@ -703,7 +715,7 @@ body:is([data-page="analyze"],[data-page="logs"]) .chip-real{display:inline-bloc
 }
 </style>
 </head>
-<body>
+<body data-page="dashboard">
 <div class="app">
 
   <!-- ================= SIDEBAR ================= -->
@@ -760,8 +772,8 @@ body:is([data-page="analyze"],[data-page="logs"]) .chip-real{display:inline-bloc
   <main>
     <header class="topbar">
       <div>
-        <h1 id="pgTitle">ภาพรวมระบบ</h1>
-        <div class="sub" id="pgSub">สรุปสถานะกล้องและสถิติเหตุการณ์</div>
+        <h1 id="pgTitle">ภาพรวมผลวิเคราะห์</h1>
+        <div class="sub" id="pgSub">สรุปประวัติจริงและสถานะ Live pilot</div>
       </div>
       <div class="spacer"></div>
       <span class="chip-mock">MOCKUP · ข้อมูลจำลอง</span>
@@ -771,73 +783,28 @@ body:is([data-page="analyze"],[data-page="logs"]) .chip-real{display:inline-bloc
     </header>
 
     <!-- ---------- DASHBOARD ---------- -->
-    <section class="view on" id="v-dashboard">
-      <div class="mock-banner" role="note"><svg viewBox="0 0 24 24"><path d="M12 9v4.5M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>ข้อมูลจำลอง — ไม่ใช่ผลจากโมเดล <span>(ผลจากโมเดลจริงดูได้ที่เมนู Upload &amp; Analyze)</span></div>
+    <section class="view on" id="v-dashboard" aria-labelledby="dbTitle">
+      <div class="card db-intro">
+        <div><h2 id="dbTitle">ภาพรวมผลวิเคราะห์ที่บันทึกจริง</h2><p>สรุปจาก SQLite · รายการผลโมเดลยังไม่ใช่เหตุที่ยืนยันแล้ว</p></div>
+        <div class="db-controls"><label for="dbPeriod">ช่วงเวลาบันทึก</label><select id="dbPeriod"><option value="today">วันนี้ (Bangkok)</option><option value="7d" selected>7 วันตามปฏิทินรวมวันนี้</option><option value="all">ทั้งหมด</option></select><button class="btn" id="dbRefresh" type="button">รีเฟรชภาพรวม</button></div>
+      </div>
+      <p id="dbMessage" role="status" aria-live="polite">กำลังอ่านข้อมูลภาพรวม…</p>
       <div class="kpis">
-        <div class="card kpi">
-          <div class="lbl"><span class="dot ok"></span>กล้องที่ออนไลน์</div>
-          <div class="val">12<small> / 14</small></div>
-          <div class="delta">ออฟไลน์ 1 · สัญญาณอ่อน 1</div>
-          <svg class="spark" id="sp1" viewBox="0 0 96 42" preserveAspectRatio="none"></svg>
-        </div>
-        <div class="card kpi">
-          <div class="lbl"><span class="dot ok pulse"></span>สถานะระบบตรวจจับ</div>
-          <div class="val" style="font-size:22px;color:#4ade80;letter-spacing:0">ทำงานปกติ</div>
-          <div class="delta">ประมวลผล 12 stream · 24.6 FPS เฉลี่ย</div>
-        </div>
-        <div class="card kpi">
-          <div class="lbl"><span class="dot warn"></span>เหตุการณ์วันนี้</div>
-          <div class="val">47</div>
-          <div class="delta"><b class="up">▲ 18%</b> เทียบเมื่อวาน (40)</div>
-          <svg class="spark" id="sp2" viewBox="0 0 96 42" preserveAspectRatio="none"></svg>
-        </div>
-        <div class="card kpi">
-          <div class="lbl"><span class="dot ok"></span>เวลาตอบสนองเฉลี่ย</div>
-          <div class="val">1:24<small> น.</small></div>
-          <div class="delta"><b class="down">▼ 22 วิ</b> เร็วขึ้นจากสัปดาห์ก่อน</div>
-        </div>
+        <div class="card kpi"><div class="lbl">รายการผลโมเดล</div><div class="val" id="dbTotal">—</div><div class="delta">หนึ่งรายการต่อรอบ / ประเภทผล / โมเดล</div></div>
+        <div class="card kpi"><div class="lbl">รอตรวจสอบในช่วงที่เลือก</div><div class="val" id="dbPending">—</div><div class="delta" id="dbReviewed">รับทราบ — · ปิดรายการ —</div></div>
+        <div class="card kpi"><div class="lbl">รอบวิเคราะห์ที่เริ่มในช่วงที่เลือก</div><div class="val" id="dbRuns">—</div><div class="delta">รวมรอบที่ไม่พบผลตรวจจับ</div></div>
+        <div class="card kpi"><div class="lbl">เซสชัน Live ล่าสุดของ backend นี้</div><div class="val db-session-state" id="dbLiveState">—</div><div class="delta">แยกจากช่วงเวลาของประวัติ</div></div>
       </div>
-
       <div class="grid2">
-        <div class="card">
-          <div class="card-h"><h3>เหตุการณ์รายชั่วโมง (24 ชม. ล่าสุด)</h3><span class="hint">แยกตามประเภท</span></div>
-          <div class="chart-wrap"><svg id="barChart" viewBox="0 0 720 220" preserveAspectRatio="none" style="width:100%;height:220px"></svg></div>
-          <div class="legend">
-            <span><i style="background:var(--c-fall)"></i>fall (คนล้ม)</span>
-            <span><i style="background:var(--c-fire)"></i>fire_smoke (ไฟ/ควัน)</span>
-            <span><i style="background:var(--c-ppe)"></i>ppe (อุปกรณ์ป้องกัน)</span>
-            <span><i style="background:var(--c-fight)"></i>fight (ทะเลาะวิวาท)</span>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-h"><h3>สัดส่วนเหตุการณ์</h3><span class="hint">7 วันล่าสุด</span></div>
-          <div class="donut-box">
-            <div class="donut">
-              <svg viewBox="0 0 42 42" id="donut" style="width:132px;height:132px;transform:rotate(-90deg)"></svg>
-              <div class="donut-mid"><b id="dTotal">0</b><span>เหตุการณ์</span></div>
-            </div>
-            <div class="mix" id="mix"></div>
-          </div>
-        </div>
+        <section class="card"><div class="card-h"><h3>รายการแยกตามวันที่บันทึก</h3></div><p class="db-caption">แสดง 7 วันตามปฏิทินรวมวันนี้ใน Asia/Bangkok ภายในช่วงที่เลือก</p><div id="dbDaily" class="db-series" aria-label="กราฟจำนวนรายการรายวัน"></div></section>
+        <section class="card"><div class="card-h"><h3>รายการแยกประเภทผล</h3></div><p class="db-caption">นับแถวสรุปในประวัติ รวม Non-fight และผล PPE จากกฎ</p><div id="dbTypes" class="db-series" aria-label="กราฟจำนวนรายการแยกประเภท"></div></section>
       </div>
-
       <div class="grid2b">
-        <div class="card">
-          <div class="card-h"><h3>สถานะกล้อง</h3><span class="hint">14 ตัว</span></div>
-          <div class="camlist" id="camHealth"></div>
-        </div>
-        <div class="card">
-          <div class="card-h"><span class="dot ok pulse"></span><h3>การแจ้งเตือนล่าสุด</h3>
-            <button class="hint" data-go="logs" style="cursor:pointer;color:var(--accent)">ดูทั้งหมด →</button></div>
-          <div class="mini-log" id="miniLog"></div>
-        </div>
+        <section class="card"><div class="card-h"><h3>สถานะเซสชันจริง</h3><button class="btn" data-go="live" type="button">เปิด Live pilot</button></div><div id="dbLive" class="db-live"></div><p id="dbLiveMessage" class="db-caption" role="status" aria-live="polite"></p><p class="db-caption">รองรับแหล่งภาพครั้งละหนึ่งรายการ สถานะนี้ไม่ได้บอกจำนวนกล้องออนไลน์</p></section>
+        <section class="card"><div class="card-h"><h3>ผลโมเดลล่าสุดในช่วงที่เลือก</h3><button class="btn" data-go="logs" type="button">ดูประวัติทั้งหมด</button></div><div id="dbLatest" class="db-latest"></div></section>
       </div>
-
-      <p class="note">
-        หน้านี้เป็น Draft Mockup — ตัวเลข กราฟ และรายการทั้งหมดเป็นข้อมูลจำลอง (mock data)
-        ยังไม่ได้เชื่อมต่อกับโมเดล YOLOv8 หรือฐานข้อมูลจริง ใช้เพื่อสื่อสารโครงหน้าจอและ flow การใช้งานเท่านั้น
-      </p>
+      <p class="note">วันที่ใช้เวลาบันทึกรายการครั้งแรก ไม่ใช่เวลาในวิดีโอ การเพิ่ม observations ในรายการ Live เดิมไม่เพิ่มจำนวนรายการหรือย้ายวันที่ กรณีเลือกทั้งหมด กราฟรายวันแสดงเฉพาะ 7 วันล่าสุด ส่วนยอดรวมและประเภทผลครอบคลุมทั้งหมด</p>
+      <p class="note" id="dbUpdated">ยังไม่ได้อ่านข้อมูล</p>
     </section>
 
     <!-- ---------- LIVE ---------- -->
@@ -1233,7 +1200,7 @@ const fmtD  = d => pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+String(d.getFull
 
 /* ============ NAVIGATION ============ */
 const PAGES = {
-  dashboard:['ภาพรวมระบบ','สรุปสถานะกล้องและสถิติเหตุการณ์'],
+  dashboard:['ภาพรวมผลวิเคราะห์','สรุปประวัติจริงและสถานะ Live pilot'],
   live:     ['Live CCTV Monitoring','ภาพสดพร้อมผลตรวจจับ 4 เหตุการณ์แบบเรียลไทม์'],
   logs:     ['ประวัติผลตรวจจับ','ผลจากโมเดลจริง · รอตรวจสอบโดยผู้ใช้'],
   analyze:  ['Upload & Analyze','วิเคราะห์ภาพ/วิดีโอด้วยโมเดลจริงผ่าน API (ต้นแบบ pilot)']
@@ -1261,83 +1228,6 @@ setInterval(()=>{
   clock.textContent = s; liveClock.textContent = s;
   document.querySelectorAll('[data-osdclock]').forEach(e=>e.textContent = fmtD(d)+' '+fmtT(d));
 },1000);
-
-/* ============ DASHBOARD : charts ============ */
-function spark(el, up){
-  const pts=[]; let v=rnd(12,20);
-  for(let i=0;i<18;i++){ v += rnd(-4,up?5:4); v=Math.max(4,Math.min(38,v)); pts.push([i*96/17, 42-v]); }
-  const d = pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
-  el.innerHTML = `<path d="${d}" fill="none" stroke="${up?'#f87171':'#38bdf8'}" stroke-width="1.6"/>
-   <path d="${d} L96 42 L0 42Z" fill="${up?'#f8717120':'#38bdf820'}"/>`;
-}
-spark(sp1,false); spark(sp2,true);
-
-(function bars(){
-  const W=720,H=220,PADB=26,PADL=26, n=24, keys=Object.keys(CLS);
-  const data = Array.from({length:n},(_,h)=>{
-    const busy = (h>=7&&h<=10)||(h>=16&&h<=19) ? 1.9 : (h>=1&&h<=5 ? .35 : 1);
-    const o={}; keys.forEach(k=>o[k]=Math.round(rnd(0,k==='ppe'?4.5:k==='fire_smoke'?.9:2.4)*busy));
-    return o;
-  });
-  const max = Math.max(6, ...data.map(d=>keys.reduce((s,k)=>s+d[k],0)));
-  const bw = (W-PADL-10)/n, gap = bw*0.26;
-  let g = '';
-  for(let i=0;i<=4;i++){
-    const y = PADB + (H-PADB*2)*(i/4);
-    g += `<line x1="${PADL}" y1="${y}" x2="${W}" y2="${y}" stroke="#22303f" stroke-width="1"/>
-          <text x="0" y="${y+3.5}" fill="#657588" font-size="10" font-family="monospace">${Math.round(max*(1-i/4))}</text>`;
-  }
-  data.forEach((d,i)=>{
-    let acc=0; const x = PADL + i*bw + gap/2, w = bw-gap;
-    keys.forEach(k=>{
-      const h = d[k]/max*(H-PADB*2);
-      if(h>0){
-        const y = H-PADB-acc-h;
-        g += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${CLS[k].c}" opacity=".88"><title>${pad(i)}:00 — ${k}: ${d[k]}</title></rect>`;
-        acc += h;
-      }
-    });
-    if(i%3===0) g += `<text x="${(x+w/2).toFixed(1)}" y="${H-9}" fill="#657588" font-size="10" font-family="monospace" text-anchor="middle">${pad(i)}</text>`;
-  });
-  barChart.innerHTML = g;
-})();
-
-(function donut(){
-  const tally={}; Object.keys(CLS).forEach(k=>tally[k]=0);
-  LOGS.forEach(l=>tally[l.cls]++);
-  const total = LOGS.length; dTotal.textContent = total;
-  let off=0, g='<circle cx="21" cy="21" r="15.9" fill="none" stroke="#1c2635" stroke-width="5.2"/>';
-  let mixHtml='';
-  Object.entries(tally).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>{
-    const pct = v/total*100;
-    g += `<circle cx="21" cy="21" r="15.9" fill="none" stroke="${CLS[k].c}" stroke-width="5.2"
-           stroke-dasharray="${pct.toFixed(2)} ${(100-pct).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}"
-           stroke-linecap="butt"/>`;
-    off += pct;
-    mixHtml += `<div class="mix-row">
-      <span class="tag t-${k}"><i></i>${k}</span>
-      <span class="n">${v} · ${pct.toFixed(0)}%</span>
-      <span class="bar"><i style="width:${pct.toFixed(1)}%;background:${CLS[k].c}"></i></span></div>`;
-  });
-  document.getElementById('donut').innerHTML = g;
-  mix.innerHTML = mixHtml;
-})();
-
-camHealth.innerHTML = CAMS.map(c=>`
-  <div class="camrow">
-    <span class="dot ${c.st==='ok'?'ok':c.st==='warn'?'warn':'off'}"></span>
-    <div><div class="nm">${c.id}</div><div class="zn">${c.zone}</div></div>
-    <span class="fps">${c.st==='off'?'—':c.fps+' fps'}</span>
-    <span class="lat">${c.st==='off'?'offline':c.st==='warn'?'สัญญาณอ่อน':ri(18,46)+' ms'}</span>
-  </div>`).join('');
-
-miniLog.innerHTML = LOGS.slice(0,7).map(l=>`
-  <div class="mini-row">
-    <span class="tm">${fmtT(l.t).slice(0,5)}</span>
-    <span class="tag t-${l.cls}"><i></i>${l.cls}</span>
-    <span class="cm">${l.cam} · ${l.zone}</span>
-    <span class="sev sev-${l.sev}">${SEV_TH[l.sev]}</span>
-  </div>`).join('');
 
 /* ============ LIVE : camera scenes ============ */
 const SCENES = [
@@ -1492,7 +1382,7 @@ function pushFeed(){
 for(let i=0;i<6;i++) pushFeed();
 setInterval(pushFeed, 4200);
 
-/* Real history is loaded by logs.js; Dashboard and demo monitors keep mock data. */
+/* Real history/dashboard use their API controllers; only demo monitors use mock data. */
 
 /* ============ MODAL ============ */
 function openModal(id){
@@ -1534,6 +1424,7 @@ navLogs.textContent = '—';
 navLive.textContent = SCENES.filter(s=>s.boxes.length).length;
 </script>
 <!-- Upload & Analyze: real API calls (no mock data) -->
+<script src="dashboard.js?v=20261014-dashboard"></script>
 <script src="logs.js?v=20261014-history-2"></script>
 <script src="analyze.js?v=20261014-pipeline-live"></script>
 <script src="live.js?v=20261014-pipeline-live"></script>
