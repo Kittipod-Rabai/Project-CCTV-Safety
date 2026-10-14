@@ -13,6 +13,7 @@ data/raw/
 data/processed/
 data/local/
 reports/
+mockup/demo-assets/
 configs/datasets.local.yaml
 .env
 .venv/

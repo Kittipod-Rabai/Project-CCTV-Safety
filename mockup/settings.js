@@ -48,7 +48,7 @@
   function editor(data) {
     for (const [, , , , , ,path] of fields) controls.get(path).value = String(read(data.analysis_settings,path));
     revision = data.revision; loaded = true; dirty = false; conflict = false;
-    $('stRevision').textContent = 'ค่าที่โหลด revision '+revision + (data.updated_at
+    $('stRevision').textContent = (window.CCTVMode.active ? 'ค่าจำลอง revision ' : 'ค่าที่โหลด revision ')+revision + (data.updated_at
       ? ' · บันทึกล่าสุด '+new Date(data.updated_at).toLocaleString('th-TH',{timeZone:'Asia/Bangkok'})+' (Bangkok)'
       : ' · ยังไม่เคยบันทึก ใช้ค่าเริ่มต้นของโครงการ');
   }
@@ -59,7 +59,7 @@
       if (saved && latest) $(id).value = String(read(latest.analysis_settings,path));
     }
     $('azSavedSettingsMeta').textContent = saved
-      ? 'backend อ่านค่าที่บันทึกเมื่อเริ่มแต่ละคำขอ' + (latest ? ' · ค่าที่อ่านล่าสุด revision '+latest.revision : ' · ยังอ่านค่าบันทึกไม่ได้')
+      ? (window.CCTVMode.active ? 'ใช้ snapshot ค่าจำลองเมื่อเริ่มรอบ · ไม่ inference ใหม่' : 'backend อ่านค่าที่บันทึกเมื่อเริ่มแต่ละคำขอ') + (latest ? ' · ค่าที่อ่านล่าสุด revision '+latest.revision : ' · ยังอ่านค่าบันทึกไม่ได้')
       : 'ใช้ค่าขั้นสูงในฟอร์มเฉพาะคำขอนี้ ไม่บันทึกทับค่าระบบ';
   }
   async function api(options) {
@@ -75,7 +75,7 @@
     } finally { clearTimeout(timer); }
   }
   async function load(force = false) {
-    if (busy || window.CCTVMode.active) return;
+    if (busy) return;
     const token = modeToken;
     busy = true; buttons(); $('stMessage').textContent = 'กำลังอ่านค่าที่บันทึก…';
     try {
@@ -84,7 +84,7 @@
       latest = data;
       if (!dirty || force || !loaded) editor(data);
       analyzer();
-      $('stMessage').textContent = dirty ? 'มีร่างที่ยังไม่บันทึก คงค่าที่แก้ไว้ หาก revision เปลี่ยนให้โหลดค่าปัจจุบันก่อนบันทึก' : 'อ่านค่าจาก backend แล้ว';
+      $('stMessage').textContent = dirty ? 'มีร่างที่ยังไม่บันทึก คงค่าที่แก้ไว้ หาก revision เปลี่ยนให้โหลดค่าปัจจุบันก่อนบันทึก' : (window.CCTVMode.active ? 'อ่านค่าจำลองแล้ว · เก็บเฉพาะรอบสาธิต' : 'อ่านค่าจาก backend แล้ว');
     } catch (error) {
       if (token !== modeToken) return;
       $('stMessage').textContent = 'อ่านค่าตั้งไม่ได้ · '+error.message + (loaded ? ' · ฟอร์มยังเป็นค่าที่โหลดครั้งก่อน' : '');
@@ -94,7 +94,7 @@
   $('stForm').addEventListener('input',() => { dirty = true; buttons(); $('stMessage').textContent = 'มีค่าที่แก้แต่ยังไม่บันทึก'; });
   $('stForm').addEventListener('submit',async ev => {
     ev.preventDefault();
-    if (window.CCTVMode.active || busy || !loaded || conflict || !$('stForm').reportValidity()) return;
+    if (busy || !loaded || conflict || !$('stForm').reportValidity()) return;
     const settings = {};
     for (const [path,input] of controls) set(settings,path,Number(input.value));
     window.CCTVMode.lock('settings',true);
@@ -102,7 +102,7 @@
     try {
       const data = await api({method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({analysis_settings:settings,revision})});
       latest = data; editor(data); analyzer();
-      $('stMessage').textContent = 'บันทึกแล้ว revision '+data.revision+' · ใช้กับการวิเคราะห์หรือ Live session ถัดไป';
+      $('stMessage').textContent = (window.CCTVMode.active ? 'บันทึกค่าจำลองแล้ว revision ' : 'บันทึกแล้ว revision ')+data.revision+(window.CCTVMode.active ? ' · เฉพาะรอบสาธิตถัดไป · IoU/imgsz/Tracking ไม่ได้ประมวลผลใหม่' : ' · ใช้กับการวิเคราะห์หรือ Live session ถัดไป');
     } catch (error) {
       conflict = error.code === 'settings_conflict';
       $('stMessage').textContent = conflict
@@ -118,6 +118,6 @@
   });
   $('azUseSavedSettings').addEventListener('change',analyzer);
   document.querySelectorAll('[data-go="settings"],[data-go="analyze"]').forEach(button => button.addEventListener('click',() => load()));
-  document.addEventListener('cctv:modechange',ev => { ++modeToken; busy=false; if (!ev.detail.demo) load(); });
+  document.addEventListener('cctv:modechange',ev => { ++modeToken; busy=false; latest=null; loaded=false; dirty=false; conflict=false; $('azUseSavedSettings').checked=true; analyzer(); load(true); });
   analyzer(); buttons(); load();
 }());

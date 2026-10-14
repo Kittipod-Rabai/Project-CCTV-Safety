@@ -49,21 +49,22 @@
     $('dbLatest').replaceChildren();
     for (const item of data.latest) {
       const row = node('div','', 'db-result');
-      row.append(node('b','OBS-' + item.id + ' · ' + (types[item.event_type] || item.event_type)),
+      row.append(node('small',window.CCTVMode.origin(item.context)),node('b',window.CCTVMode.id('OBS',item.id) + ' · ' + (types[item.event_type] || item.event_type)),
         node('div',item.source_label + ' · ' + item.model),
         node('small',fmt(item.recorded_at) + ' · ' + review[item.status] + ' · ' + (states[item.run_state] || item.run_state)));
       $('dbLatest').append(row);
     }
     if (!data.total) $('dbLatest').append(node('p','ไม่มีรายการผลโมเดลในช่วงที่เลือก', 'db-empty'));
     $('navLogs').textContent = String(data.pending_total);
-    $('dbMessage').textContent = data.total ? 'อ่านภาพรวมจากฐานข้อมูลแล้ว · จำนวนรายการไม่ใช่จำนวนเหตุที่ยืนยัน' :
+    $('dbMessage').textContent = data.total ? (window.CCTVMode.active ? 'ภาพรวมสาธิตในหน่วยความจำ · จำนวนรายการไม่ใช่เหตุที่ยืนยัน' : 'อ่านภาพรวมจากฐานข้อมูลแล้ว · จำนวนรายการไม่ใช่จำนวนเหตุที่ยืนยัน') :
       data.run_count ? 'มีรอบวิเคราะห์ในช่วงนี้ แต่ยังไม่มีรายการผลโมเดลที่บันทึก' : 'ยังไม่มีข้อมูลในช่วงที่เลือก · เริ่มวิเคราะห์ไฟล์หรือ Live replay เพื่อสร้างประวัติ';
-    $('dbUpdated').textContent = 'ข้อมูลประวัติ ณ ' + fmt(data.generated_at) +
+    $('dbUpdated').textContent = (window.CCTVMode.active ? 'ข้อมูลสาธิต ณ ' : 'ข้อมูลประวัติ ณ ') + fmt(data.generated_at) +
       ' (Asia/Bangkok) · สถานะรอบที่เริ่มในช่วงนี้: ' +
       (Object.entries(data.run_states).map(([s,n]) => (states[s] || s) + ' ' + n).join(', ') || 'ไม่มีรอบวิเคราะห์');
   }
   function live(data) {
     $('dbLive').replaceChildren();
+    if (data.context) $('dbLive').append(node('p',window.CCTVMode.origin(data.context)));
     $('dbLiveState').textContent = states[data.status] || data.status;
     if (!data.session_id) {
       $('dbLive').append(node('p','ยังไม่มีเซสชัน Live ใน backend process นี้'));
@@ -71,14 +72,13 @@
       for (const text of ['เซสชัน: ' + data.session_id,
         'สถานะ: ' + (states[data.status] || data.status),
         'แหล่งภาพ: ' + (data.playback_mode === 'realtime' ? 'RTSP' : 'ไฟล์ replay'),
-        'เฟรมรับเข้า ' + data.frames_received + ' · ประมวลผลแล้ว ' + data.frames_processed,
-        'YOLO/X3D: ' + data.device_used + ' · YuNet: CPU']) $('dbLive').append(node('p',text));
+        data.context ? 'เวลาเดโม '+data.elapsed_s+' s · ผลบันทึก/สมมติ ไม่ใช่การวัดเฟรมจริง' : 'เฟรมรับเข้า ' + data.frames_received + ' · ประมวลผลแล้ว ' + data.frames_processed,
+        data.context ? 'ประสิทธิภาพไม่ได้วัดในรอบสาธิต · อุปกรณ์จากรอบที่บันทึก: '+(data.device_used||'ไม่ได้วัด') : 'YOLO/X3D: ' + data.device_used + ' · YuNet: CPU']) $('dbLive').append(node('p',text));
       if (data.reason) $('dbLive').append(node('p','เหตุผล: ' + data.reason));
     }
-    $('dbLiveMessage').textContent = 'อ่านสถานะจาก API แล้ว · ' + fmt(new Date());
+    $('dbLiveMessage').textContent = (window.CCTVMode.active ? 'สถานะเซสชันสาธิต · ' : 'อ่านสถานะจาก API แล้ว · ') + fmt(data.generated_at || new Date());
   }
   async function load({background = false} = {}) {
-    if (window.CCTVMode.active) return;
     const current = ++token;
     if (controller) controller.abort();
     controller = new AbortController();
@@ -119,7 +119,8 @@
   }, 10000);
   document.addEventListener('cctv:modechange',ev => {
     ++token; controller?.abort(); loading = false;
-    if (!ev.detail.demo) load();
+    load();
   });
+  document.addEventListener('cctv:datachange',() => { if (window.CCTVMode.active) load({background:true}); });
   load();
 }());

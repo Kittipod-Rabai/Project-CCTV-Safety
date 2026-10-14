@@ -38,9 +38,8 @@
     if (Array.from($('rlSource').options).some(x => x.value === selectedSource)) $('rlSource').value = selectedSource;
   }
   async function load(refreshSources = false) {
-    if (window.CCTVMode.active) return;
     const token = ++requestToken;
-    message('กำลังอ่านประวัติจากฐานข้อมูล…');
+    message((window.CCTVMode.active ? 'กำลังอ่านประวัติสาธิต…' : 'กำลังอ่านประวัติจากฐานข้อมูล…'));
     $('rlBody').replaceChildren(); $('rlEmpty').hidden = true;
     $('rlPrev').disabled = $('rlNext').disabled = true;
     try {
@@ -52,11 +51,11 @@
       for (const item of result.items) {
         const row = document.createElement('tr');
         const time = item.start_s == null ? 'ภาพนิ่ง' : item.start_s.toFixed(2) + '–' + item.end_s.toFixed(2) + ' s';
-        for (const value of ['OBS-'+item.id+' · '+fmt(item.recorded_at),
+        for (const value of [window.CCTVMode.id('OBS',item.id)+' · '+fmt(item.recorded_at),
           item.source_label+' · '+item.run_id.slice(0,8)+' · '+item.run_state,
           (types[item.event_type] || item.event_type)+' · '+item.model,
           time,item.score.toFixed(4),String(item.observation_count),states[item.status]]) row.append(node('td',value));
-        const cell = document.createElement('td'), button = node('button','ดู OBS-'+item.id);
+        const cell = document.createElement('td'), button = node('button','ดู '+window.CCTVMode.id('OBS',item.id));
         button.type = 'button'; button.className = 'btn'; button.addEventListener('click',() => detail(item.id));
         cell.append(button); row.append(cell); $('rlBody').append(row);
       }
@@ -64,7 +63,7 @@
       $('rlInfo').textContent = result.total + ' รายการผลตรวจจับ · หน้า ' + page + '/' + pages;
       $('navLogs').textContent = String(result.pending_total);
       $('rlPrev').disabled = page <= 1; $('rlNext').disabled = page >= pages;
-      message(result.total ? 'ข้อมูลจากโมเดลที่บันทึกจริง · สถานะตรวจสอบไม่ใช่การยืนยันเหตุ' : 'ไม่มีผลที่ตรงกับตัวกรอง · รอบที่ไม่พบวัตถุยังแสดงในรายการแหล่งไฟล์');
+      message(result.total ? (window.CCTVMode.active ? 'ข้อมูลสาธิตในหน่วยความจำ · สถานะตรวจสอบไม่ใช่การยืนยันเหตุ' : 'ข้อมูลจากโมเดลที่บันทึกจริง · สถานะตรวจสอบไม่ใช่การยืนยันเหตุ') : 'ไม่มีผลที่ตรงกับตัวกรอง · รอบที่ไม่พบวัตถุยังแสดงในรายการแหล่งไฟล์');
     } catch (err) {
       if (token !== requestToken) return;
       $('rlInfo').textContent = ''; $('navLogs').textContent = '—';
@@ -82,8 +81,9 @@
       const item = await api('/api/logs/'+id);
       if (token !== detailToken) return;
       selected = item;
-      $('rlTitle').textContent = 'OBS-'+item.id+' · '+(types[item.event_type] || item.event_type);
+      $('rlTitle').textContent = window.CCTVMode.id('OBS',item.id)+' · '+(types[item.event_type] || item.event_type);
       const values = [
+        ...(item.context ? [['ที่มาของผล',window.CCTVMode.origin(item.context)],['เวลาหลักฐานเดิม',item.context.captured_at || (item.context.kind==='captured'?'ไม่ได้บันทึกเวลารันเดิม':'ไม่ใช้ · สถานการณ์สมมติ')],['หลักฐาน',item.context.evidence || 'ไม่มี · สถานการณ์สมมติ'],['ค่าที่ใช้ตอนรันหลักฐานเดิม',item.context.recorded_settings ? JSON.stringify(item.context.recorded_settings) : 'ไม่ใช้ · สถานการณ์สมมติ']] : []),
         ['แหล่งไฟล์',item.source_label],['ประเภทแหล่ง',item.source_type],['รอบวิเคราะห์',item.run_id],
         ['สถานะรอบ',item.run_state],['โมเดล',item.model],['สถานะตรวจสอบ',states[item.status]],
         ['เวลาบันทึก (Bangkok)',fmt(item.recorded_at)],['เวลาอัปเดต (Bangkok)',fmt(item.updated_at)],
@@ -97,7 +97,7 @@
         key.className = 'k'; val.className = 'v'; section.append(key,val);
         $('rlDetails').append(section);
       }
-      $('rlReviewMessage').textContent = 'บันทึกสถานะโดยผู้ใช้ในเครื่อง · ไม่มีระบบบัญชีผู้รับผิดชอบ';
+      $('rlReviewMessage').textContent = (window.CCTVMode.active ? 'เปลี่ยนสถานะเฉพาะข้อมูลสาธิต · ไม่เขียนฐานข้อมูลจริง' : 'บันทึกสถานะโดยผู้ใช้ในเครื่อง · ไม่มีระบบบัญชีผู้รับผิดชอบ');
       reviewButtons(false);
       $('rlClose').focus();
     } catch (err) { if (token === detailToken) $('rlReviewMessage').textContent = err.message; }
@@ -107,7 +107,6 @@
   }
   async function review(status) {
     if (!selected) return;
-    if (window.CCTVMode.active) return;
     window.CCTVMode.lock('review',true);
     const id = selected.id, token = detailToken;
     reviewButtons(true); $('rlReviewMessage').textContent = 'กำลังบันทึกสถานะ…';
@@ -140,6 +139,7 @@
     load(true);
     detail(id);
   });
-  document.addEventListener('cctv:modechange',ev => { ++requestToken; close(); clearTimeout(timer); if (!ev.detail.demo) { page=1; load(true); } });
+  document.addEventListener('cctv:modechange',ev => { ++requestToken; close(); clearTimeout(timer); page=1; load(true); });
+  document.addEventListener('cctv:datachange',() => { if (window.CCTVMode.active) load(true); });
   document.querySelectorAll('[data-go="logs"]').forEach(button => button.addEventListener('click',() => {page = 1; load(true);}));
 }());

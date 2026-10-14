@@ -31,11 +31,11 @@
     for (const item of latest) {
       items.set(item.id,item);
       const row = node('div','', 'nt-item');
-      row.append(node('b','NT-'+item.id+' · '+(names[item.event_type] || item.event_type)),
+      row.append(node('small',window.CCTVMode.origin(item.context)),node('b',window.CCTVMode.id('NT',item.id)+' · '+(names[item.event_type] || item.event_type)),
         node('p',item.source_label + ' · ' + item.model),
         node('small',fmt(item.created_at)+' · คะแนนขณะเข้าเกณฑ์ '+item.score.toFixed(4)),
         node('small','สถานะประวัติที่อ่านล่าสุด: '+review[item.status]));
-      const button = node('button','เปิดประวัติ OBS-'+item.observation_id,'btn');
+      const button = node('button','เปิดประวัติ '+window.CCTVMode.id('OBS',item.observation_id),'btn');
       button.type = 'button'; button.addEventListener('click',() => openHistory(item));
       row.append(button); $('ntList').append(row);
     }
@@ -44,13 +44,12 @@
   function toast(item, count) {
     toastItem = item;
     clearTimeout(toastTimer);
-    $('ntToastText').textContent = (names[item.event_type] || item.event_type) + ' · ' + item.source_label +
+    $('ntToastText').textContent = (item.context ? 'โหมดสาธิต · '+(item.context.kind==='captured'?'ผลบันทึกจริงจากภาพนิ่ง':'สถานการณ์สมมติ')+' · ' : '') + (names[item.event_type] || item.event_type) + ' · ' + item.source_label +
       ' · รอตรวจสอบโดยผู้ใช้' + (count > 1 ? ' · มีรายการใหม่ในรอบนี้ '+count+' รายการ' : '');
     $('ntToast').hidden = false;
     toastTimer = setTimeout(() => { $('ntToast').hidden = true; },12000);
   }
   async function load(snapshot = false) {
-    if (window.CCTVMode.active) return;
     const token = modeToken;
     if (busy) { refreshRequested ||= snapshot; return; }
     busy = true;
@@ -61,7 +60,7 @@
       const response = await window.CCTVMode.fetch('/api/notifications' +
         (initial || snapshot || recover ? '' : '?after_id='+cursor+'&limit=50'), {signal:controller.signal});
       const data = await response.json();
-      if (token !== modeToken || window.CCTVMode.active) return;
+      if (token !== modeToken) return;
       if (!response.ok) throw new Error(data.error?.message || 'อ่านรายการแจ้งไม่สำเร็จ');
       const fresh = initial || data.reset ? [] : data.items.filter(x => x.id > previous && x.status === 'new');
       if (initial || snapshot || recover || data.reset) items.clear();
@@ -73,7 +72,7 @@
       $('ntRule').textContent = 'พัก '+data.cooldown_s+' วินาทีต่อรายการประวัติ · รับทราบ/ปิดรายการใน Logs เพื่อหยุดแจ้งซ้ำ';
       if (fresh.length) toast(fresh.reduce((a,b) => a.id>b.id ? a : b),fresh.length);
     } catch (err) {
-      if (token !== modeToken || window.CCTVMode.active) return;
+      if (token !== modeToken) return;
       recover = true;
       $('ntCount').textContent = '—';
       $('ntMessage').textContent = 'อ่านการแจ้งเตือนไม่ได้ · '+err.message+' · รายการเดิมด้านล่างเป็นข้อมูลที่อ่านได้ครั้งก่อน';
@@ -99,6 +98,7 @@
   $('ntToastOpen').addEventListener('click',() => { if (toastItem) openHistory(toastItem); });
   document.addEventListener('keydown',ev => { if (ev.key === 'Escape' && !$('ntPanel').hidden) close(); });
   setInterval(() => { if (!document.hidden) load(!$('ntPanel').hidden); },2000);
-  document.addEventListener('cctv:modechange',ev => { ++modeToken; clearTimeout(toastTimer); items.clear(); cursor=null; renderKey=''; refreshRequested=false; if (!ev.detail.demo) load(true); });
+  document.addEventListener('cctv:modechange',ev => { ++modeToken; clearTimeout(toastTimer); items.clear(); cursor=null; renderKey=''; refreshRequested=false; load(true); });
+  document.addEventListener('cctv:datachange',() => { if (window.CCTVMode.active) load(); });
   load();
 }());

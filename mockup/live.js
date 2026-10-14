@@ -19,7 +19,7 @@
   function report(text) { status.textContent = text; }
   function setControls(active) {
     [sourceType, source, sourceFile, device, $('liveModel')].forEach(input => {
-      if (input) input.disabled = active;
+      if (input) input.disabled = active || window.CCTVMode.active;
     });
   }
   function finishSession() {
@@ -82,11 +82,12 @@
     }
     confidenceList.append(confidenceRow('Fight · X3D', latestFight, null));
     if (confidenceMeta && latest) {
-      confidenceMeta.textContent = (latest.model || 'YOLO') + ' · ' + Number(latest.time_s || 0).toFixed(2) + ' s · ' + (latest.detection_count || 0) + ' กล่อง';
+      confidenceMeta.textContent = (latest.model || 'YOLO') + ' · ' + (latest.context ? 'เวลาเดโม '+Number(latest.demo_time_s||0).toFixed(2) : Number(latest.time_s||0).toFixed(2)) + ' s · ' + (latest.detection_count || 0) + ' กล่อง';
     }
   }
   function renderMetrics(message) {
     if (!metrics) return;
+    if(message.context){metrics.textContent=window.CCTVMode.origin(message.context)+' · FPS/latency ไม่ได้วัด · อุปกรณ์จากรอบที่บันทึก: '+(message.device_used||'ไม่ได้วัด');return;}
     const timings = message.timings_ms || {};
     const value = key => timings[key] ? `${Number(timings[key].mean_ms).toFixed(1)} ms` : '—';
     const fps = Number(message.processing_fps || 0).toFixed(1);
@@ -98,6 +99,29 @@
     const body = await r.json();
     if (!r.ok) throw new Error(body.error?.message || 'Live API error');
     return body;
+  }
+  function handleMessage(msg,token,connection) {
+    if(token!==generation||socket!==connection)return;
+        if (msg.session_id !== activeSession) return;
+        if (msg.type === 'preview' && typeof msg.jpeg_b64 === 'string') {
+          preview.src = 'data:image/jpeg;base64,' + msg.jpeg_b64; preview.hidden = false;
+        } else if (msg.type === 'confidence') {
+          renderConfidence(msg);
+          if(msg.context)addEvent('โหมดสาธิต · เวลา '+msg.demo_time_s+' s · '+Object.entries(msg.classes).map(([name,value])=>name+'='+Number(value.max_confidence).toFixed(4)).join(' · ')+' · อัปเดตรายการเดิมตามรอบ');
+        } else if (msg.type === 'candidate') addEvent('Candidate เบื้องต้น · ' + msg.time_s + 's · latency ' + msg.processing_latency_ms + 'ms · ' + msg.trigger_reasons.join(', '));
+        else if (msg.type === 'x3d') {
+          latestFight = msg.fight;
+          renderConfidence(null);
+          addEvent('X3D ' + msg.label + ' · fight=' + msg.fight + ' · ' + msg.start_s + '–' + msg.end_s + 's');
+        }
+        else if (msg.type === 'health') {
+          const replayHint = msg.playback_mode === 'processing_paced' ? ' · replay ปรับความเร็วตามเครื่อง · ไม่ทิ้งเฟรม' : '';
+          const devices = msg.device_components ? ' · ' + deviceSummary(msg.device_components) : '';
+          renderMetrics(msg);
+          report(msg.context ? 'โหมดสาธิต · '+msg.state+' · '+Number(msg.elapsed_s||0).toFixed(1)+' s · ไม่ได้สแกนเฟรมจริง' : msg.state + (msg.reason ? ' · ' + msg.reason : '') + devices + replayHint + ' · scanned ' + msg.frames_face_scanned + '/' + msg.frames_received);
+          if (['stopped','degraded','error'].includes(msg.state)) finishSession();
+        }
+
   }
   function updateSourceHelp() {
     const isFile = sourceType.value === 'file';
@@ -115,6 +139,19 @@
   sourceType.addEventListener('change', updateSourceHelp);
   updateSourceHelp();
   start.addEventListener('click', async () => {
+    if(window.CCTVMode.active){
+      const token=++generation;finishSession();events.replaceChildren();preview.hidden=true;latestFight=null;latestConfidenceMessage=null;renderConfidence(null);
+      window.CCTVMode.lock('live-start',true);start.disabled=true;
+      try {
+        const body=await window.CCTVMode.startLive();if(token!==generation)return;activeSession=body.session_id;
+        let unsubscribe;const connection={close:()=>unsubscribe?.()};socket=connection;
+        unsubscribe=window.CCTVMode.subscribeLive(msg=>handleMessage(msg,token,connection));
+        setControls(true);stop.disabled=false;renderMetrics(body);addEvent('เริ่มรอบสาธิต '+body.session_id+' · snapshot revision '+body.settings_revision);report('โหมดสาธิต · เริ่มแล้ว · ผลแรกวินาที 10 หรือกดเหตุการณ์ถัดไป');
+        $('liveDemoContext').hidden=false;$('liveDemoContext').textContent=window.CCTVMode.origin(body.context)+' · snapshot revision '+body.settings_revision;
+      }catch(error){report(error.message);finishSession();}
+      finally{window.CCTVMode.lock('live-start',false);}
+      return;
+    }
     const isFile = sourceType.value === 'file';
     const file = sourceFile && sourceFile.files && sourceFile.files[0];
     if (isFile && !file) {
@@ -181,24 +218,7 @@
         if (token !== generation || socket !== connection) return;
         let msg;
         try { msg = JSON.parse(ev.data); } catch (_) { report('WebSocket ส่งข้อมูลไม่ถูกต้อง'); return; }
-        if (msg.session_id !== activeSession) return;
-        if (msg.type === 'preview' && typeof msg.jpeg_b64 === 'string') {
-          preview.src = 'data:image/jpeg;base64,' + msg.jpeg_b64; preview.hidden = false;
-        } else if (msg.type === 'confidence') {
-          renderConfidence(msg);
-        } else if (msg.type === 'candidate') addEvent('Candidate เบื้องต้น · ' + msg.time_s + 's · latency ' + msg.processing_latency_ms + 'ms · ' + msg.trigger_reasons.join(', '));
-        else if (msg.type === 'x3d') {
-          latestFight = msg.fight;
-          renderConfidence(null);
-          addEvent('X3D ' + msg.label + ' · fight=' + msg.fight + ' · ' + msg.start_s + '–' + msg.end_s + 's');
-        }
-        else if (msg.type === 'health') {
-          const replayHint = msg.playback_mode === 'processing_paced' ? ' · replay ปรับความเร็วตามเครื่อง · ไม่ทิ้งเฟรม' : '';
-          const devices = msg.device_components ? ' · ' + deviceSummary(msg.device_components) : '';
-          renderMetrics(msg);
-          report(msg.state + (msg.reason ? ' · ' + msg.reason : '') + devices + replayHint + ' · scanned ' + msg.frames_face_scanned + '/' + msg.frames_received);
-          if (['stopped','degraded','error'].includes(msg.state)) finishSession();
-        }
+        handleMessage(msg,token,connection);
       };
       connection.onerror = () => {
         if (token === generation && socket === connection) report('WebSocket ขาดการเชื่อมต่อ · กำลังตรวจสถานะ API');
@@ -212,11 +232,15 @@
     }
   });
   stop.addEventListener('click', async () => {
+    if(window.CCTVMode.active){window.CCTVMode.stopLive();finishSession();report('หยุดสถานการณ์สาธิตแล้ว');return;}
     stop.disabled = true;
     try { await request('/api/live/stop', 'POST'); report('กำลังหยุดและระบายเฟรมที่รับแล้ว'); }
     catch (err) { report(err.message); stop.disabled = false; }
   });
-  document.addEventListener('cctv:modechange',ev => { if (ev.detail.demo) { ++generation; clearTimeout(statusTimer); if (socket) { const old=socket; socket=null; old.close(); } } });
+  document.addEventListener('cctv:modechange',() => {
+    ++generation;finishSession();preview.hidden=true;preview.removeAttribute('src');events.replaceChildren();latestFight=null;latestConfidenceMessage=null;renderConfidence(null);
+    $('liveDemoContext').hidden=true;report(window.CCTVMode.active?'พร้อมเริ่มสถานการณ์สาธิต':'ยังไม่เริ่ม session');
+  });
   window.addEventListener('beforeunload', () => {
     clearTimeout(statusTimer);
     if (socket) socket.close();

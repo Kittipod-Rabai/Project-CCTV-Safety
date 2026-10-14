@@ -209,9 +209,12 @@
   function errorText(r) { return r.code ? r.message + ' [' + r.code + ']' : r.message; }
 
   /* ---------------- health (small dot + text; details collapsed) ---------------- */
+  let healthToken=0;
   async function loadHealth() {
+    const token=++healthToken;
     ui.healthMsg.hidden = true;
     const r = await callApi(API.health, { cache: 'no-store' });
+    if(token!==healthToken)return;
     clear(ui.healthModels);
     if (!r.ok) {
       ui.apiDot.className = 'dot az-dot-bad';
@@ -222,6 +225,7 @@
       return;
     }
     const h = r.data;
+    if (window.CCTVMode.active) { ui.apiDot.className='dot ok'; ui.apiText.textContent='โหมดสาธิต · ใช้ผลบันทึก/สมมติในเครื่อง · ไม่ inference ใหม่'; ui.healthDevice.textContent='ไม่ได้รันโมเดล'; return; }
     const device = typeof h.device === 'string' ? h.device : '—';
     ui.healthDevice.textContent = device;
     const runtime = h.runtime || {};
@@ -880,7 +884,7 @@
     d.appendChild(el('div', 'v mono', v));
     parent.appendChild(d);
   }
-  function setBadge(badge, data) { badge.hidden = !(data && data.is_model_output === true); }
+  function setBadge(badge, data) { badge.hidden = window.CCTVMode.active || !(data && data.is_model_output === true); }
   function setDisclaimer(node, data) {
     node.textContent = typeof data.disclaimer === 'string' ? data.disclaimer : '';
     node.hidden = !node.textContent;
@@ -935,8 +939,10 @@
   function renderStage1Tech(data) {
     clear(ui.s1Meta);
     const src = data.source;
+    if (data.context?.recorded_settings) metaItem(ui.s1Meta,'ค่าที่ใช้ตอนรันหลักฐานเดิม',JSON.stringify(data.context.recorded_settings));
+    if (data.context) { metaItem(ui.s1Meta,'ที่มาของผล',window.CCTVMode.origin(data.context)); metaItem(ui.s1Meta,'เวลาหลักฐานเดิม',data.context.captured_at || 'ไม่ได้บันทึก / สมมติ'); metaItem(ui.s1Meta,'ประสิทธิภาพ','ไม่ได้วัดในรอบสาธิต'); }
     metaItem(ui.s1Meta, 'model', data.model);
-    if (data.device_used) metaItem(ui.s1Meta, 'อุปกรณ์ที่ใช้จริง', data.device_used);
+    if (data.device_used) metaItem(ui.s1Meta, data.context ? 'อุปกรณ์จากรอบที่บันทึก' : 'อุปกรณ์ที่ใช้จริง', data.device_used);
     metaItem(ui.s1Meta, 'media', data.media_type);
     metaItem(ui.s1Meta, 'mode', data.mode);
     if (data.mode === 'dense') metaItem(ui.s1Meta, 'sample_fps', num(data.sample_fps, 2));
@@ -1094,6 +1100,7 @@
 
     // Technical details: summary numbers, window times and raw probabilities.
     clear(ui.s2Meta);
+    if (data.context) metaItem(ui.s2Meta,'ที่มาของผล',window.CCTVMode.origin(data.context));
     metaItem(ui.s2Meta, 'model', data.model);
     if (Number.isInteger(data.settings_revision)) metaItem(ui.s2Meta, 'ค่าตั้งอ้างอิง revision', data.settings_revision);
     if (data.device_used) metaItem(ui.s2Meta, 'อุปกรณ์ที่ใช้จริง', data.device_used);
@@ -1364,6 +1371,22 @@
   }
 
   async function analyzeRun() {
+    if (window.CCTVMode.active) {
+      resetResults(); const token=runToken; ui.run.disabled=true;
+      setState(ui.status,'loading','กำลังอ่านผลสาธิต · ไม่ inference ใหม่');
+      try {
+        const data=await window.CCTVMode.analyze(analysisSettings());
+        if(token!==runToken)return;
+        $('v-analyze').classList.add('has-file'); ui.preview.hidden=false; ui.preview.classList.add('thumb');
+        renderStage1(data.stage1,window.CCTVMode.origin(data.context));
+        setSafePreview(data.stage1.frames[0].image_jpeg_b64);
+        if(data.stage2)renderStage2(data.stage2);
+        else setState(ui.s2State,'info','ภาพนิ่ง · ไม่ใช้ Stage 2 ในสถานการณ์นี้');
+        setState(ui.status,'info',window.CCTVMode.origin(data.context)+' · รอบ '+data.run_id);
+      } catch(error) { if(token===runToken)setState(ui.status,'error',error.message); }
+      finally { if(token===runToken)ui.run.disabled=false; }
+      return;
+    }
     const file = st.file;
     if (!file) { setState(ui.status, 'error', 'กรุณาเลือกไฟล์ภาพหรือวิดีโอก่อน'); return; }
     const kind = st.kind;
@@ -1434,11 +1457,16 @@
   });
   [ui.faceConfidence, ui.facePadding, ui.faceBlur].forEach(input => input.addEventListener('input', updatePrivacySettingLabels));
   async function analyze() {
-    if (window.CCTVMode.active) return;
     window.CCTVMode.lock('analyze',true);
     try { await analyzeRun(); } finally { window.CCTVMode.lock('analyze',false); }
   }
-  document.addEventListener('cctv:modechange',ev => { if (!ev.detail.demo) loadHealth(); });
+  document.addEventListener('cctv:modechange',ev => {
+    resetResults(); ui.status.hidden=true; clear(ui.preview); [ui.faceConfidence,ui.facePadding,ui.faceBlur].forEach(input=>input.disabled=ev.detail.demo); ui.model.disabled=ev.detail.demo; if(ui.device)ui.device.disabled=ev.detail.demo;
+    if(st.url){URL.revokeObjectURL(st.url);st.url=null;}
+    if(ev.detail.demo){ui.run.disabled=false;ui.file.disabled=true;ui.fileInfo.textContent='ใช้สถานการณ์บนแถบสาธิต · ไม่อัปโหลดไฟล์';ui.preview.hidden=true;}
+    else {ui.file.disabled=false;onFileChange();}
+    loadHealth();
+  });
   ui.run.addEventListener('click', analyze);
   ui.healthRefresh.addEventListener('click', loadHealth);
   window.addEventListener('beforeunload', () => { if (st.url) URL.revokeObjectURL(st.url); });

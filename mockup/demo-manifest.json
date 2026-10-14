@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "sample_id": "captured-smoke",
+  "source_file": "data/raw/dfire/data/test/images/WEB11091.jpg",
+  "source_sha256": "6e476afcbc16d73184d18d767f900ff360a5b7b63ac825473f3d4c9b87fabb7f",
+  "evidence": "reports/settings_verification/real-defaults.json",
+  "evidence_sha256": "5797bf994b9110e40213ae13f9a74d12eadbb07fdeb4b5dbdab385c2ca54634e",
+  "captured_at": null,
+  "capture_time_note": "Original report does not record inference timestamp; do not infer it from filesystem dates.",
+  "model": "yolov8n",
+  "device_used": "cpu",
+  "settings": {
+    "yolo": {
+      "thresholds": {
+        "person": 0.25,
+        "helmet": 0.2,
+        "vest": 0.2,
+        "fall": 0.2,
+        "fire": 0.2,
+        "smoke": 0.2
+      },
+      "iou": 0.7,
+      "imgsz": 640,
+      "max_det": 300
+    },
+    "x3d": {
+      "fight_threshold": 0.5
+    },
+    "tracking": {
+      "proximity_diagonals": 0.16,
+      "motion_diagonals_per_s": 0.25,
+      "max_track_gap_s": 0.75
+    }
+  },
+  "privacy_review": "Reviewed preview: smoke/vegetation only, no identifiable people. Not a claim of a complete face scan.",
+  "approved_preview": true,
+  "media_kind": "still-image-replay",
+  "width": 640,
+  "height": 360,
+  "source_notes": "D-Fire test sample. Local educational replay; raw dataset media are not distributed in Git.",
+  "source_audit": "docs/stage1_dataset_primary_source_audit.md",
+  "payload": {
+    "path": "demo-assets/smoke-result.json",
+    "sha256": "3ce0f5e89724a28b0ccf8a31d80e67207cf568df2283a676d2e1be71b827c495"
+  },
+  "preview": {
+    "path": "demo-assets/smoke-preview.jpg",
+    "sha256": "f5811b3d982a04e9b5990ad090934c543156294b1bcf37cb234c81914a793103"
+  }
+}

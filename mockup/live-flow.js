@@ -75,6 +75,7 @@
 
   // Capture phase prevents a bad request from uploading the whole clip first.
   start.addEventListener('click', event => {
+    if(window.CCTVMode.active)return;
     const fileMode = sourceType.value === 'file';
     if (fileMode) {
       if (uploadEndpointMissing) {
@@ -114,8 +115,13 @@
 
   syncSourceMode();
   updateDeviceHelp();
+  let runtimeGeneration=0;
+  function loadRuntime(){
+    const token=++runtimeGeneration;
+    if(window.CCTVMode.active){runtimeStatus.textContent='โหมดสาธิต · ไม่ได้รัน YOLO/X3D/YuNet';deviceHelp.textContent='ไม่ได้เลือกอุปกรณ์ประมวลผลจริง';return;}
   window.CCTVMode.fetch('/api/health').then(async response => {
     const body = await response.json();
+    if(token!==runtimeGeneration)return;
     if (!response.ok || !body.runtime) throw new Error('API health unavailable');
     cudaAvailable = Boolean(body.runtime.cuda_available);
     if (cudaOption) cudaOption.disabled = !cudaAvailable;
@@ -125,6 +131,7 @@
     }
     const gpuName = body.runtime.gpu && body.runtime.gpu.name ? ` · ${body.runtime.gpu.name}` : '';
     const uploadRoute = await window.CCTVMode.fetch('/api/live/start-upload', { method: 'OPTIONS' });
+    if(token!==runtimeGeneration)return;
     uploadEndpointMissing = uploadRoute.status === 404;
     runtimeStatus.textContent = uploadEndpointMissing
       ? 'API รุ่นเก่า · ไม่พบ file-upload route · รีสตาร์ต Uvicorn'
@@ -135,9 +142,13 @@
     runtimeStatus.style.color = uploadEndpointMissing ? '#fca5a5' : 'var(--muted)';
     updateDeviceHelp();
   }).catch(() => {
+    if(token!==runtimeGeneration)return;
     cudaAvailable = null;
     runtimeStatus.textContent = 'ตรวจสถานะ API ไม่ได้ · ตรวจว่า backend ทำงานอยู่';
     runtimeStatus.style.color = '#fca5a5';
     updateDeviceHelp();
   });
+  }
+  document.addEventListener('cctv:modechange',loadRuntime);
+  loadRuntime();
 }());

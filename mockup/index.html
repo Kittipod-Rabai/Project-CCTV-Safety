@@ -671,25 +671,20 @@ body:is([data-page="analyze"],[data-page="logs"],[data-page="dashboard"],[data-p
 .st-field input,.st-field select{background:var(--panel2);border:1px solid var(--line);border-radius:7px;color:var(--text);padding:9px;min-width:0;width:100%}
 .st-actions{display:flex;gap:10px;flex-wrap:wrap}.az-saved-settings{padding:10px 12px;font-size:12px;line-height:1.7}.az-saved-settings small{display:block;color:var(--muted)}
 .az-model-control input:disabled,.az-model-control select:disabled{opacity:.55}
-/* Explicit whole-site demo mode */
+/* Shared UI with explicit demo context. */
 [hidden]{display:none!important}
-body[data-mode="real"] .chip-mock,body[data-mode="real"] .side-foot,body[data-mode="real"] #navLive{display:none!important}
+.chip-mock,.side-foot,#navLive{display:none!important}
 body[data-mode="real"] .chip-real{display:inline-block}
-body[data-mode="demo"] .chip-real,body[data-mode="demo"] #ntToggle,body[data-mode="demo"] #ntPanel,body[data-mode="demo"] #ntToast,body[data-mode="demo"] .side-foot,body[data-mode="demo"] #navLive,body[data-mode="demo"] #navLogs{display:none!important}
-body[data-mode="demo"] .view:not(#demoView){display:none!important}
-#demoView{overflow:auto;min-height:0;padding-bottom:24px}
-#demoView.on{display:flex;flex-direction:column;gap:16px}
+body[data-mode="demo"] .chip-real{display:none!important}
+body[data-mode="demo"] #azFile,body[data-mode="demo"] label[for="azFile"],body[data-mode="demo"] #liveSourceFileField,body[data-mode="demo"] #liveSourcePathField,body[data-mode="demo"] #liveSourceType{display:none!important}
 #modeBanner{flex:none;padding:9px 20px;font-size:12px;line-height:1.6;border-bottom:1px solid var(--line);color:var(--muted)}
 body[data-mode="demo"] #modeBanner{background:#3a2d0a;color:#fcd34d;border-color:#85661e}
-.demo-card{flex:none;padding:18px;display:flex;flex-direction:column;gap:12px}
-.demo-actions{display:flex;flex-wrap:wrap;gap:8px}
-.demo-card input,.demo-card select{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:8px;max-width:100%}
-.demo-table-wrap{overflow-x:auto}.demo-table-wrap table{width:100%;border-collapse:collapse}.demo-table-wrap th,.demo-table-wrap td{padding:10px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--line)}
-.demo-preview{width:100%;max-width:640px;height:auto;border-radius:8px}
-.demo-dialog{background:#101923;color:#e2e8f0;border:1px solid #64748b;border-radius:12px;padding:24px;max-width:min(560px,90vw)}
-.demo-dialog::backdrop{background:#000a}.demo-dialog .btn{margin:8px 8px 0 0}
-body:not([data-demo-playing="true"]) .live-demo *{animation-play-state:paused!important}
-@media(max-width:700px){.topbar{flex-wrap:wrap;height:auto;min-height:68px;padding:10px;gap:8px}#modeToggle{white-space:nowrap}#modeBanner{padding:8px 12px}.demo-card{padding:12px}}
+#demoToolbar{flex:none;display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 20px;background:var(--panel);border-bottom:1px solid var(--line)}
+#demoToolbar select{min-width:200px;max-width:100%;padding:7px;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:6px}
+#demoElapsed,#demoGuide{font-size:11px;color:#fcd34d}#demoGuide{flex-basis:100%;margin:0}
+.demo-context{font-size:12px;color:#fcd34d;line-height:1.6;margin:8px 0}
+body[data-mode="demo"] .db-controls{flex-wrap:wrap}
+@media(max-width:700px){.topbar{flex-wrap:wrap;height:auto;min-height:68px;padding:10px;gap:8px}#modeToggle{white-space:nowrap}#modeBanner,#demoToolbar{padding:8px 12px}#demoToolbar select{width:100%}}
 </style>
 <style>
 /* Live page desktop proportions: preview first, results beside it, controls on one readable row. */
@@ -745,24 +740,6 @@ body:not([data-demo-playing="true"]) .live-demo *{animation-play-state:paused!im
   .live-demo .live-side{grid-template-columns:minmax(0,1fr)}
   .live-demo .live-side>.card:last-child{min-height:300px}
 }
-/* Explicit whole-site demo mode */
-[hidden]{display:none!important}
-body[data-mode="real"] .chip-mock,body[data-mode="real"] .side-foot,body[data-mode="real"] #navLive{display:none!important}
-body[data-mode="demo"] .chip-real,body[data-mode="demo"] #ntToggle,body[data-mode="demo"] #ntPanel,body[data-mode="demo"] #ntToast,body[data-mode="demo"] .side-foot,body[data-mode="demo"] #navLive,body[data-mode="demo"] #navLogs{display:none!important}
-body[data-mode="demo"] .view:not(#demoView){display:none!important}
-#demoView{overflow:auto;min-height:0;padding-bottom:24px}
-#demoView.on{display:flex;flex-direction:column;gap:16px}
-#modeBanner{flex:none;padding:9px 20px;font-size:12px;line-height:1.6;border-bottom:1px solid var(--line);color:var(--muted)}
-body[data-mode="demo"] #modeBanner{background:#3a2d0a;color:#fcd34d;border-color:#85661e}
-.demo-card{flex:none;padding:18px;display:flex;flex-direction:column;gap:12px}
-.demo-actions{display:flex;flex-wrap:wrap;gap:8px}
-.demo-card input,.demo-card select{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:8px;max-width:100%}
-.demo-table-wrap{overflow-x:auto}.demo-table-wrap table{width:100%;border-collapse:collapse}.demo-table-wrap th,.demo-table-wrap td{padding:10px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--line)}
-.demo-preview{width:100%;max-width:640px;height:auto;border-radius:8px}
-.demo-dialog{background:#101923;color:#e2e8f0;border:1px solid #64748b;border-radius:12px;padding:24px;max-width:min(560px,90vw)}
-.demo-dialog::backdrop{background:#000a}.demo-dialog .btn{margin:8px 8px 0 0}
-body:not([data-demo-playing="true"]) .live-demo *{animation-play-state:paused!important}
-@media(max-width:700px){.topbar{flex-wrap:wrap;height:auto;min-height:68px;padding:10px;gap:8px}#modeToggle{white-space:nowrap}#modeBanner{padding:8px 12px}.demo-card{padding:12px}}
 </style>
 </head>
 <body data-page="dashboard">
@@ -836,7 +813,7 @@ body:not([data-demo-playing="true"]) .live-demo *{animation-play-state:paused!im
     <!-- ---------- DASHBOARD ---------- -->
     <section class="view on" id="v-dashboard" aria-labelledby="dbTitle">
       <div class="card db-intro">
-        <div><h2 id="dbTitle">ภาพรวมผลวิเคราะห์ที่บันทึกจริง</h2><p>สรุปจาก SQLite · รายการผลโมเดลยังไม่ใช่เหตุที่ยืนยันแล้ว</p></div>
+        <div><h2 id="dbTitle">ภาพรวมผลวิเคราะห์ที่บันทึกจริง</h2><p><span data-demo-copy="สรุปจากข้อมูลเดโมในหน่วยความจำ · ไม่ใช่เหตุที่ยืนยันแล้ว">สรุปจาก SQLite · รายการผลโมเดลยังไม่ใช่เหตุที่ยืนยันแล้ว</span></p></div>
         <div class="db-controls"><label for="dbPeriod">ช่วงเวลาบันทึก</label><select id="dbPeriod"><option value="today">วันนี้ (Bangkok)</option><option value="7d" selected>7 วันตามปฏิทินรวมวันนี้</option><option value="all">ทั้งหมด</option></select><button class="btn" id="dbRefresh" type="button">รีเฟรชภาพรวม</button></div>
       </div>
       <p id="dbMessage" role="status" aria-live="polite">กำลังอ่านข้อมูลภาพรวม…</p>
@@ -844,14 +821,14 @@ body:not([data-demo-playing="true"]) .live-demo *{animation-play-state:paused!im
         <div class="card kpi"><div class="lbl">รายการผลโมเดล</div><div class="val" id="dbTotal">—</div><div class="delta">หนึ่งรายการต่อรอบ / ประเภทผล / โมเดล</div></div>
         <div class="card kpi"><div class="lbl">รอตรวจสอบในช่วงที่เลือก</div><div class="val" id="dbPending">—</div><div class="delta" id="dbReviewed">รับทราบ — · ปิดรายการ —</div></div>
         <div class="card kpi"><div class="lbl">รอบวิเคราะห์ที่เริ่มในช่วงที่เลือก</div><div class="val" id="dbRuns">—</div><div class="delta">รวมรอบที่ไม่พบผลตรวจจับ</div></div>
-        <div class="card kpi"><div class="lbl">เซสชัน Live ล่าสุดของ backend นี้</div><div class="val db-session-state" id="dbLiveState">—</div><div class="delta">แยกจากช่วงเวลาของประวัติ</div></div>
+        <div class="card kpi"><div class="lbl"><span data-demo-copy="เซสชัน Live สาธิตล่าสุด">เซสชัน Live ล่าสุดของ backend นี้</span></div><div class="val db-session-state" id="dbLiveState">—</div><div class="delta">แยกจากช่วงเวลาของประวัติ</div></div>
       </div>
       <div class="grid2">
         <section class="card"><div class="card-h"><h3>รายการแยกตามวันที่บันทึก</h3></div><p class="db-caption">แสดง 7 วันตามปฏิทินรวมวันนี้ใน Asia/Bangkok ภายในช่วงที่เลือก</p><div id="dbDaily" class="db-series" aria-label="กราฟจำนวนรายการรายวัน"></div></section>
         <section class="card"><div class="card-h"><h3>รายการแยกประเภทผล</h3></div><p class="db-caption">นับแถวสรุปในประวัติ รวม Non-fight และผล PPE จากกฎ</p><div id="dbTypes" class="db-series" aria-label="กราฟจำนวนรายการแยกประเภท"></div></section>
       </div>
       <div class="grid2b">
-        <section class="card"><div class="card-h"><h3>สถานะเซสชันจริง</h3><button class="btn" data-go="live" type="button">เปิด Live pilot</button></div><div id="dbLive" class="db-live"></div><p id="dbLiveMessage" class="db-caption" role="status" aria-live="polite"></p><p class="db-caption">รองรับแหล่งภาพครั้งละหนึ่งรายการ สถานะนี้ไม่ได้บอกจำนวนกล้องออนไลน์</p></section>
+        <section class="card"><div class="card-h"><h3 data-demo-copy="สถานะเซสชันสาธิต">สถานะเซสชันจริง</h3><button class="btn" data-go="live" type="button">เปิด Live pilot</button></div><div id="dbLive" class="db-live"></div><p id="dbLiveMessage" class="db-caption" role="status" aria-live="polite"></p><p class="db-caption">รองรับแหล่งภาพครั้งละหนึ่งรายการ สถานะนี้ไม่ได้บอกจำนวนกล้องออนไลน์</p></section>
         <section class="card"><div class="card-h"><h3>ผลโมเดลล่าสุดในช่วงที่เลือก</h3><button class="btn" data-go="logs" type="button">ดูประวัติทั้งหมด</button></div><div id="dbLatest" class="db-latest"></div></section>
       </div>
       <p class="note">วันที่ใช้เวลาบันทึกรายการครั้งแรก ไม่ใช่เวลาในวิดีโอ การเพิ่ม observations ในรายการ Live เดิมไม่เพิ่มจำนวนรายการหรือย้ายวันที่ กรณีเลือกทั้งหมด กราฟรายวันแสดงเฉพาะ 7 วันล่าสุด ส่วนยอดรวมและประเภทผลครอบคลุมทั้งหมด</p>
@@ -861,7 +838,7 @@ body:not([data-demo-playing="true"]) .live-demo *{animation-play-state:paused!im
     <section class="view" id="v-settings" aria-labelledby="stTitle">
       <div class="card st-card">
         <h2 id="stTitle">ค่าตั้งต้นการวิเคราะห์ที่บันทึกในเครื่อง</h2>
-        <p>ใช้กับ Stage 1, Stage 2, Pipeline และ Live session ที่เริ่มครั้งถัดไป งานที่กำลังทำจะใช้ค่าตอนเริ่มต่อจนจบ</p>
+        <p><span data-demo-copy="ใช้กับรอบสาธิตถัดไป งานที่เริ่มแล้วใช้ snapshot เดิม · ไม่บันทึกค่าระบบจริง">ใช้กับ Stage 1, Stage 2, Pipeline และ Live session ที่เริ่มครั้งถัดไป งานที่กำลังทำจะใช้ค่าตอนเริ่มต่อจนจบ</span></p>
         <p>ค่าความมั่นใจและ Fight threshold ของโมเดลแยกจากเกณฑ์แจ้งเหตุสงสัย ไม่ได้ปรับเกณฑ์แจ้งเตือน ความเป็นส่วนตัว หรืออุปกรณ์ประมวลผลจากหน้านี้</p>
         <p id="stRevision">ยังไม่ได้อ่านค่าบันทึก</p>
         <p id="stMessage" role="status" aria-live="polite">กำลังโหลด…</p>
@@ -876,7 +853,7 @@ body:not([data-demo-playing="true"]) .live-demo *{animation-play-state:paused!im
     <!-- ---------- LIVE ---------- -->
     <section class="view live" id="v-live">
       <section class="card live-pilot" aria-labelledby="livePilotTitle">
-        <div class="card-h live-pilot-heading"><span class="live-pilot-badge">Live pilot · ประมวลผลจริง</span><h3 id="livePilotTitle">ทดสอบแหล่งภาพหนึ่งรายการ</h3><span id="liveRuntimeStatus" class="hint" role="status" aria-live="polite">กำลังตรวจ API และอุปกรณ์…</span><span id="liveRealStatus" class="hint" role="status" aria-live="polite">ยังไม่เริ่ม session</span></div>
+        <div class="card-h live-pilot-heading"><span class="live-pilot-badge"><span data-demo-copy="Live สาธิต · แหล่งภาพเดียว · ไม่ inference ใหม่">Live pilot · ประมวลผลจริง</span></span><h3 id="livePilotTitle">ทดสอบแหล่งภาพหนึ่งรายการ</h3><span id="liveRuntimeStatus" class="hint" role="status" aria-live="polite">กำลังตรวจ API และอุปกรณ์…</span><span id="liveRealStatus" class="hint" role="status" aria-live="polite">ยังไม่เริ่ม session</span></div>
         <div class="live-pilot-controls">
           <div class="field"><label for="liveSourceType">1. แหล่งภาพ</label><select id="liveSourceType"><option value="file">เลือกไฟล์วิดีโอ · แนะนำสำหรับทดสอบ</option><option value="rtsp">กล้อง RTSP · ยังไม่ได้ทดสอบกับกล้องจริง</option></select></div>
           <div class="field" id="liveSourcePathField"><label id="liveSourceLabel" for="liveSource">2. ที่อยู่ไฟล์หรือกล้อง</label><input id="liveSource" type="text" placeholder="rtsp://กล้องในเครือข่าย/stream" autocomplete="off" spellcheck="false"></div>
@@ -886,6 +863,7 @@ body:not([data-demo-playing="true"]) .live-demo *{animation-play-state:paused!im
           <div class="field"><label for="liveDevice">อุปกรณ์ประมวลผล</label><select id="liveDevice"><option value="auto">Auto · แนะนำ</option><option value="cpu">CPU</option><option value="cuda">GPU NVIDIA CUDA · YOLO/X3D</option></select><small class="live-source-help" id="liveDeviceHelp">กำลังตรวจ CUDA…</small></div>
           <div class="live-actions"><button class="btn primary" id="liveStart">เริ่ม Live</button><button class="btn" id="liveStop" disabled>หยุด</button></div>
         </div>
+        <p id="liveDemoContext" class="demo-context" hidden></p>
         <div class="live-real-grid">
           <img id="liveRealPreview" class="live-real-preview" alt="Live preview ที่ผ่านการเบลอใบหน้า" hidden>
           <div class="live-real-side">
@@ -895,7 +873,7 @@ body:not([data-demo-playing="true"]) .live-demo *{animation-play-state:paused!im
               <div id="liveRealMetrics" class="live-real-metrics" aria-live="polite">เวลาประมวลผลรายขั้นจะปรากฏเมื่อเริ่ม Live</div>
             </section>
             <section class="live-real-events-panel" aria-labelledby="liveRealEventsTitle">
-              <div class="live-real-events-head"><h4 id="liveRealEventsTitle">เหตุการณ์ล่าสุด</h4><span title="รายการ feed-item จาก Live pilot">FEED ITEM</span></div>
+              <div class="live-real-events-head"><h4 id="liveRealEventsTitle">เหตุการณ์ล่าสุด</h4><span title="ผลล่าสุดของเซสชันนี้">ล่าสุด</span></div>
               <div id="liveRealEvents" class="feed live-real-events" aria-live="polite"></div>
             </section>
           </div>
@@ -944,7 +922,7 @@ body:not([data-demo-playing="true"]) .live-demo *{animation-play-state:paused!im
 
     <!-- ---------- LOGS ---------- -->
     <section class="view" id="v-logs">
-      <div class="mock-banner" role="note">ประวัติผลจากโมเดลจริง · รอตรวจสอบโดยผู้ใช้ · ไม่ใช่เหตุที่ยืนยันแล้ว</div>
+      <div class="mock-banner" role="note"><span data-demo-copy="ประวัติสาธิต · มีทั้งสถานการณ์สมมติและผลที่บันทึกไว้ · ไม่ใช่เหตุที่ยืนยันแล้ว">ประวัติผลจากโมเดลจริง · รอตรวจสอบโดยผู้ใช้ · ไม่ใช่เหตุที่ยืนยันแล้ว</span></div>
       <div class="filters">
         <div class="field"><input id="rlSearch" aria-label="ค้นหาประวัติ" placeholder="ค้นหาชื่อไฟล์ / โมเดล / รหัสรายการ"></div>
         <div class="field"><select id="rlPeriod" aria-label="ช่วงเวลาบันทึก">
@@ -979,7 +957,7 @@ body:not([data-demo-playing="true"]) .live-demo *{animation-play-state:paused!im
     <section class="view" id="v-analyze">
       <div class="az-top">
         <div class="card">
-          <div class="card-h"><h3>อัปโหลดไฟล์</h3>
+          <div class="card-h"><h3 data-demo-copy="วิเคราะห์สถานการณ์สาธิต">อัปโหลดไฟล์</h3>
             <span class="az-api" role="status"><span class="dot" id="azApiDot"></span><span id="azApiText">กำลังตรวจสถานะ API …</span></span>
             <span class="hint">ภาพ: jpg jpeg png bmp webp · วิดีโอ: mp4 avi mov mkv · สูงสุด 100 MB</span></div>
           <div class="az-form">
@@ -991,10 +969,10 @@ body:not([data-demo-playing="true"]) .live-demo *{animation-play-state:paused!im
                     accept=".jpg,.jpeg,.png,.bmp,.webp,.mp4,.avi,.mov,.mkv,image/jpeg,image/png,image/bmp,image/webp,video/mp4,video/x-msvideo,video/quicktime,video/x-matroska">
                   <label class="btn primary az-file-picker" for="azFile">เลือกไฟล์…</label>
                 </div>
-                <small class="az-input-hint" id="azFileHint">รองรับ JPG, PNG, MP4 และไฟล์ตามรายการ · ไม่เกิน 100 MB</small>
+                <small class="az-input-hint" id="azFileHint" data-demo-copy="เลือกสถานการณ์บนแถบสาธิต · ไม่รับไฟล์ส่วนตัว">รองรับ JPG, PNG, MP4 และไฟล์ตามรายการ · ไม่เกิน 100 MB</small>
               </div>
               <div class="field">
-                <label for="azModel">2. โมเดลตรวจจับ</label>
+                <label for="azModel" data-demo-copy="2. โมเดลของผลบันทึก/สมมติ">2. โมเดลตรวจจับ</label>
                 <select id="azModel">
                   <option value="yolov8n">YOLOv8n</option>
                   <option value="yolov8s">YOLOv8s</option>
@@ -1042,7 +1020,7 @@ body:not([data-demo-playing="true"]) .live-demo *{animation-play-state:paused!im
               <p class="az-privacy-note">ค่า FPS สำหรับวิดีโอและจำนวนเฟรมสำหรับโหมดสำรองอยู่ด้านบน · การเพิ่มความไวอาจเพิ่มผลบวกลวง · อุปกรณ์ประมวลผลเลือกได้ต่อการรันด้านบน; YOLO/X3D ใช้ CUDA ได้เมื่อ PyTorch รองรับ ส่วน YuNet เบลอหน้าทำงานบน CPU</p>
             </details>
             <details class="az-privacy-settings">
-              <summary class="az-settings-summary">ความเป็นส่วนตัว · เบลอใบหน้า (YuNet) <small>ระบบเบลอทุกครั้งที่แสดงภาพ</small></summary>
+              <summary class="az-settings-summary">ความเป็นส่วนตัว · เบลอใบหน้า (YuNet) <small data-demo-copy="ใช้ preview ที่ตรวจแล้ว / ภาพวาด · ไม่รัน YuNet ในเดโม">ระบบเบลอทุกครั้งที่แสดงภาพ</small></summary>
               <div class="az-privacy-grid">
                 <div class="az-privacy-control">
                   <label for="azFaceConfidence">ความไวในการตรวจ · confidence threshold</label>
@@ -1299,7 +1277,7 @@ function go(p){
   document.getElementById('v-'+p).classList.add('on');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('on', n.dataset.go===p));
   pgTitle.textContent = PAGES[p][0];
-  pgSub.textContent   = PAGES[p][1];
+  pgSub.textContent   = window.CCTVMode?.active ? 'โหมดสาธิต · หน้าจอเดียวกับระบบจริง · ผลบันทึก/สมมติในหน่วยความจำ' : PAGES[p][1];
   document.body.dataset.page = p;
 }
 
@@ -1506,13 +1484,14 @@ navLogs.textContent = '—';
 navLive.textContent = SCENES.filter(s=>s.boxes.length).length;
 </script>
 <!-- Upload & Analyze: real API calls (no mock data) -->
-<script src="demo-mode.js?v=20261014-demo"></script>
-<script src="dashboard.js?v=20261014-demo"></script>
-<script src="logs.js?v=20261014-demo"></script>
-<script src="notifications.js?v=20261014-demo"></script>
-<script src="settings.js?v=20261014-demo"></script>
-<script src="analyze.js?v=20261014-demo"></script>
-<script src="live.js?v=20261014-demo"></script>
-<script src="live-flow.js?v=20261014-demo"></script>
+<script src="demo-provider.js?v=20261014-shared-demo"></script>
+<script src="demo-mode.js?v=20261014-shared-demo"></script>
+<script src="dashboard.js?v=20261014-shared-demo"></script>
+<script src="logs.js?v=20261014-shared-demo"></script>
+<script src="notifications.js?v=20261014-shared-demo"></script>
+<script src="settings.js?v=20261014-shared-demo"></script>
+<script src="analyze.js?v=20261014-shared-demo"></script>
+<script src="live.js?v=20261014-shared-demo"></script>
+<script src="live-flow.js?v=20261014-shared-demo"></script>
 </body>
 </html>

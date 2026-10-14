@@ -1,18 +1,13 @@
 # CCTV Safety — Local Pilot
 
 
-> **สถานะ (2026-10-14):** Educational pilot — Dashboard สรุปประวัติจริงจาก SQLite แล้ว จอมอนิเตอร์ตัวอย่างยังใช้ข้อมูลจำลอง
+> **สถานะ (2026-10-14):** Educational pilot — โหมดจริงสรุปประวัติจาก SQLite; โหมดสาธิตใช้ UI ร่วมกันและข้อมูลแยกในหน่วยความจำ
 > ส่วน Upload & Analyze และ Live replay เรียกโมเดลจริง และ Alert / Logs อ่านประวัติผลโมเดลจาก SQLite ผ่าน backend แล้ว
 > มีหน้าตั้งค่า YOLO/X3D/Tracking ที่บันทึกจริง มีการบันทึกรับทราบ/ปิดรายการ และแจ้งเหตุสงสัยภายในเว็บพร้อม cooldown แต่ไม่ใช่การยืนยันเหตุ ไม่ได้ส่งแจ้งเตือนภายนอก และยังไม่มีระบบบัญชีผู้ใช้
-> ปุ่ม **เข้าโหมดสาธิต / กลับโหมดจริง** แยกชุดข้อมูลตัวอย่างครบทุกหน้าจากระบบจริง จอมอนิเตอร์จำลองปรากฏเฉพาะในโหมดสาธิต
+> ปุ่ม **เข้าโหมดสาธิต / กลับโหมดจริง** แยกชุดข้อมูลตัวอย่างครบทุกหน้าจากระบบจริง ใช้หน้าจอชุดเดียวกับระบบจริง พร้อม Live แหล่งภาพเดียวและชุดข้อมูลเชื่อมกัน
 > ดู [หลักฐานงาน 2](../docs/presentation/history-verification.md) และ [หลักฐาน Dashboard](../docs/presentation/dashboard-verification.md)
 >
-> **หมายเหตุ Schema:** หน้า mock ใช้ประเภทเหตุการณ์จำลอง 4 กลุ่มเพื่อสาธิต UI
-> เท่านั้น ไม่ใช่ class list ของโมเดล ปัจจุบัน Stage 1 ใช้ detector schema v2
-> จำนวน 6 spatial classes ใน `../docs/data_schema_6classes.md` และคำนวณ
-> `no_helmet`/`no_vest` ด้วย post-processing ส่วน `fight` เป็น Stage 2 temporal
-> event (X3D-S pilot) ซึ่งหน้า Upload & Analyze รันร่วมกับ Stage 1 ใน shadow
-> mode สำหรับวิดีโอ แต่ยังไม่ใช่ระบบแจ้งเตือนที่ผ่านการประเมิน ดู `../docs/project_status.md`.
+> **หมายเหตุ Schema:** โหมดสาธิตใช้ประเภทผลเดียวกับระบบจริง: detector schema v2 มี 6 spatial classes, `no_helmet`/`no_vest` เป็นกฎ PPE, `fight`/`non_fight` เป็นผล temporal และมีสถานะ Fall/Fight กำกวม แยกป้ายผลบันทึกจริงและสถานการณ์สมมติ ดู `../docs/project_status.md`
 
 ---
 
@@ -20,8 +15,10 @@
 
 ```text
 mockup/
-├── index.html      # โครง HTML/CSS และ Live demo monitors
-├── demo-mode.js    # ตัวสลับโหมด ชุดข้อมูลเดโม และขอบเขตคำขอ API จริง
+├── index.html      # โครง HTML/CSS และ router ของ UI ร่วมกัน
+├── demo-mode.js    # lifecycle, RealProvider และขอบเขตคำขอจริง
+├── demo-provider.js # memory store, DemoProvider และตัวเล่นสถานการณ์
+├── demo-manifest.json # ที่มา/checksum ของชุดสื่อ local ที่ตรวจแล้ว
 ├── dashboard.js    # ภาพรวม SQLite และสถานะ Live ผ่าน API จริง
 ├── logs.js         # ประวัติและสถานะตรวจสอบผ่าน API จริง
 ├── notifications.js # popup/แผงเหตุสงสัยจากข้อมูลที่บันทึกจริง
@@ -60,7 +57,7 @@ mockup/
 ##  หน้าจอที่มีใน Mockup
 
 - **Dashboard:** จำนวนแถวสรุปผลโมเดล รอตรวจสอบ รอบวิเคราะห์ ผลล่าสุด และกราฟรายวันจาก SQLite พร้อมสถานะเซสชันจาก Live API ดูรายละเอียดเวลา/หน่วยนับในหัวข้อด้านล่าง
-- **Live CCTV Monitoring:** โหมดจริงเรียก Live replay ด้วยโมเดลจริง; จอมอนิเตอร์ตัวอย่างอยู่ในโหมดสาธิต ส่วน RTSP ยังไม่ยืนยันกับกล้องจริง
+- **Live CCTV Monitoring:** โหมดจริงเรียก Live replay ด้วยโมเดลจริง; โหมดสาธิตใช้ preview แหล่งเดียวและข้อความ Live รูปแบบเดียวกัน ส่วน RTSP ยังไม่ยืนยันกับกล้องจริง
 - **Alert / Logs:** ประวัติผลตรวจจับจริงจาก SQLite พร้อมค้นหา ช่วงเวลาบันทึก แหล่งไฟล์ ประเภทผล สถานะตรวจสอบ แบ่งหน้า และ audit การเปลี่ยนสถานะ ไม่เก็บภาพ/คลิป
 - **Upload & Analyze:** วิเคราะห์ภาพ/วิดีโอด้วย YOLO/X3D ผ่าน API
 
@@ -117,13 +114,13 @@ mockup/
 
 ## โครงสร้างโค้ดปัจจุบัน
 
-- `index.html`: โครงหน้าและ router `go(page)` ส่วน `CAMS`, `LOGS`, `SCENES` และ feed สุ่มใช้เฉพาะ Live demo monitors
+- `index.html`: โครงหน้าและ router `go(page)`; ส่วนจอมอนิเตอร์หลายกล้องเดิมถูกถอดจาก DOM เมื่อเริ่มเว็บและไม่ใช้เป็นแหล่งข้อมูลเดโม
 - `dashboard.js`: อ่าน `/api/dashboard` และ `/api/live/status` แสดง loading/empty/error และรีเฟรชทุก 10 วินาทีขณะเปิดหน้า Dashboard
 - `logs.js`: อ่านประวัติจาก `/api/logs` และบันทึกสถานะผ่าน PATCH
 - `notifications.js`: อ่าน `/api/notifications` ทุก 2 วินาทีเมื่อเปิดเว็บ แสดง popup ใหม่และเปิดรายละเอียดใน Logs
 - `settings.js`: อ่าน/บันทึก `/api/settings` และโหลดค่าเริ่มต้นให้ตัวเลือก Upload & Analyze
 - `analyze.js`: วิเคราะห์ไฟล์ผ่าน API ใช้ค่าที่บันทึกโดยค่าเริ่มต้น และแสดงผลภาพ/วิดีโอ
-- `live.js` และ `live-flow.js`: Live pilot จริง แยกจากจอมอนิเตอร์จำลอง
+- `live.js` และ `live-flow.js`: ตัวแสดงผล Live ร่วมกัน รับ WebSocket จริงหรือข้อความจากตัวเล่นสาธิตตาม provider
 
 ## Dashboard จากประวัติจริง
 
@@ -162,12 +159,21 @@ mockup/
 Upload & Analyze เลือกใช้ค่าที่บันทึกโดยค่าเริ่มต้น หากยกเลิก checkbox นี้จะใช้ค่าขั้นสูงในฟอร์มเฉพาะคำขอนั้นและไม่บันทึกทับค่าระบบ Live upload ใช้ค่าที่บันทึก ส่วน JSON Live start รองรับ override ตามสัญญา API ค่าความเป็นส่วนตัว การเลือก device และเกณฑ์แจ้งเหตุสงสัยเป็นคนละส่วนกับค่าที่บันทึกหน้านี้ ดู [รายงานงาน 5](../docs/presentation/settings-verification.md)
 
 
-## โหมดสาธิตทั้งเว็บ
+## โหมดสาธิตที่ใช้ UI ร่วมกับระบบจริง
 
-กด **เข้าโหมดสาธิต** บนแถบด้านบน แล้วใช้เมนูเดิมได้ครบทุกหน้า แถบสีเหลืองและรหัส `DEMO-` ระบุข้อมูลตัวอย่าง จอมอนิเตอร์จำลองอยู่เฉพาะในโหมดนี้ ส่วน Analyze ใช้ผลตัวอย่างที่กำหนดไว้และภาพวาดประกอบ ไม่รับไฟล์ส่วนตัว ไม่เรียกโมเดลจริง
+กด **เข้าโหมดสาธิต** แล้วใช้เมนูเดิมครบทุกหน้า รวมตัวกรอง modal กราฟ และศูนย์แจ้งเตือน ข้อมูลตั้งต้น 28 รอบใน 7 วันเป็นสถานการณ์สมมติ ยอดต่าง ๆ คำนวณจาก memory store เดียวกัน ไม่เขียน SQLite
 
-Logs รับทราบ/ปิดรายการตัวอย่างได้ Dashboard และเหตุสงสัยตัวอย่างจะอัปเดตตาม Settings บันทึกเฉพาะหน่วยความจำ โดย Fight threshold มีผลต่อผลวิดีโอตัวอย่างถัดไป ไม่บันทึกลง SQLite เมื่อกลับโหมดจริงหรือรีเฟรช ข้อมูลเดโมจะถูกล้าง
+เลือกสถานการณ์บน toolbar แล้วเริ่ม Live หรือ Analyze เรื่องหลัก Smoke/Fire ใช้ผล YOLOv8n CPU ที่บันทึกไว้จริงจากภาพนิ่ง D-Fire ไม่ใช่ภาพโรงงานจริงและไม่ inference ใหม่ ส่วน PPE/Fall/Fight/ปกติ/คะแนนต่ำ/กำกวมเป็นภาพวาดและผลสมมติที่ติดป้ายชัดเจน
 
-ต้องหยุด Live จริงให้จบก่อนเข้าเดโม หากอ่านสถานะไม่ได้จะไม่สลับ ปุ่มสลับถูกล็อกขณะวิเคราะห์หรือบันทึกจริง กลับโหมดจริงแล้วโหลดข้อมูลจาก API ใหม่ ไม่มีการใช้ข้อมูลเดโมแทนกรณี API จริงผิดพลาด ดู [คู่มือพรีและผลตรวจ](../docs/presentation/demo-mode-verification.md)
+เตรียม pack ในเครื่องด้วย `.\.venv-test\Scripts\python.exe scripts/prepare_demo_assets.py` สื่ออยู่ใน `mockup/demo-assets/` (ignored) และมี manifest/checksum ที่ติดตามใน Git ต้องมีรายงานต้นทางและ dataset ในเครื่อง หรือเตรียม pack local ไว้ก่อน หากสื่อจริงหายหรือผิด hash จะไม่สร้างรอบ และยังเลือกสถานการณ์สมมติได้
 
-ตรวจ controller ด้วย `node --test tests/test_demo_mode.cjs` และตรวจ wiring เดิมด้วย `.\.venv-test\Scripts\python.exe -m pytest tests/test_frontend_static.py -q`
+มีเล่น/พัก เหตุการณ์ถัดไป และเริ่มสาธิตใหม่ เรื่องหลักเดินตามเวลาเดโม 10/20/45/90 วินาที พักเมื่อแท็บถูกซ่อน สถานะรับทราบ/ปิด/เปิดใหม่และ cooldown 30 วินาทีทำงานตามกฎจริง เมื่อออกจากโหมดหรือรีเฟรชข้อมูลเดโมถูกล้าง
+
+Settings ใช้ snapshot รอบถัดไป การปรับเกณฑ์กรองผลที่มีอยู่และคำนวณกฎที่รองรับ ไม่จำลองว่า IoU/imgsz/max_det/Tracking ได้ inference ใหม่ ค่า FPS/latency ที่ไม่ได้วัดไม่ถูกสร้างขึ้น อุปกรณ์ที่แสดงจากหลักฐานมีป้ายรอบที่บันทึก
+
+ต้องหยุด Live จริงให้จบก่อนเข้าเดโม ปุ่มสลับล็อกระหว่างงานจริง เมื่อกลับโหมดจริงโหลด API ใหม่และไม่ใช้ข้อมูลสาธิตแทน API error ดู [คู่มือพรีและผลตรวจ](../docs/presentation/shared-demo-verification.md)
+
+```powershell
+node --test tests/test_demo_mode.cjs tests/test_demo_provider.cjs
+.\.venv-test\Scripts\python.exe -m pytest -q
+```
