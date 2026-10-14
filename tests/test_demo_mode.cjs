@@ -99,7 +99,7 @@ test('approved local pack creates a captured result with demo provenance and no 
   const app=setup(async(url)=>{calls.push(url);if(url==='/api/live/status')return json({status:'idle'});if(url==='demo-manifest.json')return json(pack.manifest);return new Response(url.endsWith('.jpg')?pack.image:pack.payload);});
   await app.click();app.scenario.value='captured-smoke';const result=await app.mode.analyze();assert.equal(result.context.kind,'captured');assert.equal(result.stage1.is_model_output,false);
   assert.deepEqual(result.stage1.frames[0].detections.map(d=>[d.class_name,d.confidence]),[['smoke',.8779],['fire',.3589]]);
-  assert.match(result.context.note,/D-Fire กลางแจ้ง.*ไม่ใช่ภาพจากโรงงาน.*ไม่ได้รันโมเดลใหม่.*Smoke 0\.8779 \/ Fire 0\.3589/);
+  assert.match(result.context.note,/D-Fire กลางแจ้ง.*ไม่ใช่ภาพจากโรงงาน.*ไม่ได้ประมวลผลโมเดลซ้ำ.*Smoke 0\.8779 \/ Fire 0\.3589/);
   assert.deepEqual(calls,['/api/live/status','demo-manifest.json','demo-assets/smoke-result.json','demo-assets/smoke-preview.jpg']);
 });
 for(const fault of ['missing','checksum','unapproved','incomplete'])test('pack failure stays local: '+fault,async()=>{

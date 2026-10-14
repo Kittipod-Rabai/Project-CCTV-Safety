@@ -2,10 +2,12 @@
 (function () {
   'use strict';
   const $ = id => document.getElementById(id);
-  const types = {person:'คน', helmet:'หมวกนิรภัย', vest:'เสื้อกั๊ก', fall:'สัญญาณ Fall',
-    fire:'สัญญาณไฟ', smoke:'สัญญาณควัน', no_helmet:'ไม่พบหมวก · กฎ PPE', no_vest:'ไม่พบเสื้อกั๊ก · กฎ PPE',
-    fight:'X3D: สงสัย Fight', non_fight:'X3D: Non-fight', review_fall_fight_conflict:'Fall/Fight กำกวม'};
+  const types = {person:'บุคคล', helmet:'หมวกนิรภัย', vest:'เสื้อสะท้อนแสง', fall:'สงสัยว่ามีคนล้ม',
+    fire:'ตรวจพบไฟ', smoke:'ตรวจพบควัน', no_helmet:'ไม่พบหมวกนิรภัย (กฎ PPE)', no_vest:'ไม่พบเสื้อสะท้อนแสง (กฎ PPE)',
+    fight:'สงสัยการทะเลาะ (X3D)', non_fight:'ไม่พบสัญญาณทะเลาะ (X3D)', review_fall_fight_conflict:'ผลการล้มและการทะเลาะยังไม่ชัดเจน'};
   const states = {new:'รอตรวจสอบ', ack:'รับทราบแล้ว', closed:'ปิดรายการ'};
+  const runStates = {queued:'รอเริ่ม', running:'กำลังทำงาน', completed:'เสร็จแล้ว', stopped:'หยุดแล้ว', degraded:'ทำงานได้บางส่วน', error:'เกิดข้อผิดพลาด', cancelled:'ยกเลิกแล้ว'};
+  const sourceTypes = {file:'ไฟล์', realtime:'ภาพสด'};
   const controls = ['rlSearch','rlPeriod','rlSource','rlType','rlStatus'];
   let page = 1, pages = 1, requestToken = 0, detailToken = 0, selected = null, timer;
   const fmt = value => new Date(value).toLocaleString('th-TH', {timeZone:'Asia/Bangkok'});
@@ -14,8 +16,8 @@
   async function api(path, options) {
     const response = await window.CCTVMode.fetch(path, options);
     let body;
-    try { body = await response.json(); } catch (_) { throw new Error('API ไม่ได้ส่งข้อมูลประวัติที่อ่านได้'); }
-    if (!response.ok) throw new Error(body.error?.message || 'เรียก API ประวัติไม่สำเร็จ');
+    try { body = await response.json(); } catch (_) { throw new Error('ระบบส่งข้อมูลประวัติในรูปแบบที่อ่านไม่ได้'); }
+    if (!response.ok) throw new Error(body.error?.message || 'อ่านประวัติไม่สำเร็จ');
     return body;
   }
   function query() {
@@ -32,7 +34,7 @@
     $('rlSource').replaceChildren(node('option','ทุกแหล่ง'));
     $('rlSource').firstChild.value = '';
     for (const run of result.items) {
-      const option = node('option',run.source_label + ' · ' + run.id.slice(0,8) + ' · ' + run.state);
+      const option = node('option',run.source_label + ' · ' + run.id.slice(0,8) + ' · ' + (runStates[run.state] || run.state));
       option.value = run.id; $('rlSource').append(option);
     }
     if (Array.from($('rlSource').options).some(x => x.value === selectedSource)) $('rlSource').value = selectedSource;
@@ -52,7 +54,7 @@
         const row = document.createElement('tr');
         const time = item.start_s == null ? 'ภาพนิ่ง' : item.start_s.toFixed(2) + '–' + item.end_s.toFixed(2) + ' s';
         for (const value of [window.CCTVMode.id('OBS',item.id)+' · '+fmt(item.recorded_at),
-          item.source_label+' · '+item.run_id.slice(0,8)+' · '+item.run_state,
+          item.source_label+' · '+item.run_id.slice(0,8)+' · '+(runStates[item.run_state] || item.run_state),
           (types[item.event_type] || item.event_type)+' · '+item.model,
           time,item.score.toFixed(4),String(item.observation_count),states[item.status]]) row.append(node('td',value));
         const cell = document.createElement('td'), button = node('button','ดู '+window.CCTVMode.id('OBS',item.id));
@@ -73,7 +75,7 @@
   async function detail(id) {
     const token = ++detailToken;
     selected = null;
-    $('rlTitle').textContent = 'กำลังอ่าน OBS-'+id;
+    $('rlTitle').textContent = 'กำลังโหลดผล OBS-'+id;
     $('rlMask').classList.add('on'); $('rlDetails').replaceChildren();
     $('rlReviewMessage').textContent = 'กำลังอ่านรายละเอียด…';
     reviewButtons(true);
@@ -84,11 +86,11 @@
       $('rlTitle').textContent = window.CCTVMode.id('OBS',item.id)+' · '+(types[item.event_type] || item.event_type);
       const values = [
         ...(item.context ? [['ที่มาของผล',window.CCTVMode.origin(item.context)],['เวลาหลักฐานเดิม',item.context.captured_at || (item.context.kind==='captured'?'ไม่ได้บันทึกเวลารันเดิม':'ไม่ใช้ · สถานการณ์สมมติ')],['หลักฐาน',item.context.evidence || 'ไม่มี · สถานการณ์สมมติ'],['ค่าที่ใช้ตอนรันหลักฐานเดิม',item.context.recorded_settings ? JSON.stringify(item.context.recorded_settings) : 'ไม่ใช้ · สถานการณ์สมมติ']] : []),
-        ['แหล่งไฟล์',item.source_label],['ประเภทแหล่ง',item.source_type],['รอบวิเคราะห์',item.run_id],
-        ['สถานะรอบ',item.run_state],['โมเดล',item.model],['สถานะตรวจสอบ',states[item.status]],
-        ['เวลาบันทึก (Bangkok)',fmt(item.recorded_at)],['เวลาอัปเดต (Bangkok)',fmt(item.updated_at)],
+        ['แหล่งภาพ',item.source_label],['ชนิดแหล่งภาพ',sourceTypes[item.source_type] || item.source_type],['รอบตรวจจับ',item.run_id],
+        ['สถานะรอบตรวจจับ',runStates[item.run_state] || item.run_state],['รุ่นโมเดล',item.model],['สถานะตรวจสอบ',states[item.status]],
+        ['เวลาบันทึก',fmt(item.recorded_at)],['เวลาอัปเดต',fmt(item.updated_at)],
         ['เวลาในวิดีโอ',item.start_s == null ? 'ภาพนิ่ง' : item.start_s.toFixed(2)+'–'+item.end_s.toFixed(2)+' s'],
-        ['คะแนนสูงสุด',String(item.score)],['จำนวน observations',String(item.observation_count)],
+        ['คะแนนสูงสุด',String(item.score)],['จำนวนผลที่รวม',String(item.observation_count)],
         ['รายละเอียดประกอบ',JSON.stringify(item.details)],
         ['ประวัติเปลี่ยนสถานะ',item.status_history.map(x => fmt(x.changed_at)+' '+states[x.previous_status]+' → '+states[x.status]).join('\n') || 'ยังไม่มีการเปลี่ยนสถานะ']
       ];
@@ -97,7 +99,7 @@
         key.className = 'k'; val.className = 'v'; section.append(key,val);
         $('rlDetails').append(section);
       }
-      $('rlReviewMessage').textContent = (window.CCTVMode.active ? 'เปลี่ยนสถานะเฉพาะข้อมูลสาธิต · ไม่เขียนฐานข้อมูลจริง' : 'บันทึกสถานะโดยผู้ใช้ในเครื่อง · ไม่มีระบบบัญชีผู้รับผิดชอบ');
+      $('rlReviewMessage').textContent = (window.CCTVMode.active ? 'เปลี่ยนสถานะในข้อมูลสาธิตเท่านั้น · ไม่บันทึกในระบบจริง' : 'บันทึกสถานะการตรวจสอบแล้ว');
       reviewButtons(false);
       $('rlClose').focus();
     } catch (err) { if (token === detailToken) $('rlReviewMessage').textContent = err.message; }

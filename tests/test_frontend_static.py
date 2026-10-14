@@ -15,7 +15,7 @@ INDEX = MOCKUP / "index.html"
 ANALYZE_JS = MOCKUP / "analyze.js"
 LIVE_JS = MOCKUP / "live.js"
 MOCK_TEXT = "ข้อมูลจำลอง"
-REAL_BADGE_TEXT = "ผลจากโมเดลจริง — pilot"
+REAL_BADGE_TEXT = "ผลจากโมเดลจริง · รุ่นทดลอง"
 ALLOWED_API = {"/api/health", "/api/stage1/analyze", "/api/stage2/analyze", "/api/pipeline/analyze",
                "/api/live/start", "/api/live/start-upload", "/api/live/stop", "/api/live/status", "/api/live/events"}
 VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr",
@@ -193,13 +193,13 @@ def test_live_ui_disables_cuda_without_runtime_support():
     flow = (MOCKUP / "live-flow.js").read_text(encoding="utf-8")
     assert "cudaOption.disabled = !cudaAvailable" in flow
     assert "device.value = 'auto'" in flow
-    assert "Auto เลือก GPU" in flow and "Auto ใช้ CPU" in flow
+    assert "ระบบเลือก GPU ให้ YOLO/X3D เมื่อพร้อม" in flow and "ระบบเลือกใช้ CPU เพราะเครื่องนี้ยังใช้ CUDA ไม่ได้" in flow
 
 
 def test_summary_does_not_claim_unique_people_or_confirmed_falls(js_text):
-    assert "กล่อง person สูงสุด" in js_text
-    assert "ไม่ใช่จำนวนคนที่ยืนยันแล้ว" in js_text
-    assert "พบสัญญาณ Fall · ตรวจสอบ" in js_text
+    assert "ตรวจพบบุคคลสูงสุด" in js_text
+    assert "ไม่ใช่จำนวนบุคคลที่ยืนยันแล้ว" in js_text
+    assert "สงสัยว่ามีคนล้ม · โปรดตรวจสอบ" in js_text
 
 
 def test_analyze_js_gates_badge_on_is_model_output(js_text):

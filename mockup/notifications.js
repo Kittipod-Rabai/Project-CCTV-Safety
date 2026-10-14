@@ -2,9 +2,9 @@
 (function () {
   'use strict';
   const $ = id => document.getElementById(id);
-  const names = {fall:'สงสัยการล้ม', fire:'สงสัยไฟ', smoke:'สงสัยควัน',
-    no_helmet:'ไม่พบหมวกตามกฎ PPE', no_vest:'ไม่พบเสื้อกั๊กตามกฎ PPE',
-    fight:'สงสัย Fight', review_fall_fight_conflict:'Fall/Fight กำกวม'};
+  const names = {fall:'สงสัยว่ามีคนล้ม', fire:'ตรวจพบไฟ', smoke:'ตรวจพบควัน',
+    no_helmet:'ไม่พบหมวกนิรภัย (กฎ PPE)', no_vest:'ไม่พบเสื้อสะท้อนแสง (กฎ PPE)',
+    fight:'สงสัยการทะเลาะ (X3D)', review_fall_fight_conflict:'ผลการล้มและการทะเลาะยังไม่ชัดเจน'};
   const fmt = value => new Date(value).toLocaleString('th-TH', {timeZone:'Asia/Bangkok'});
   const review = {new:'รอตรวจสอบ', ack:'รับทราบแล้ว', closed:'ปิดรายการ'};
   const node = (tag, text, cls) => {
@@ -34,18 +34,18 @@
       row.append(node('small',window.CCTVMode.origin(item.context)),node('b',window.CCTVMode.id('NT',item.id)+' · '+(names[item.event_type] || item.event_type)),
         node('p',item.source_label + ' · ' + item.model),
         node('small',fmt(item.created_at)+' · คะแนนขณะเข้าเกณฑ์ '+item.score.toFixed(4)),
-        node('small','สถานะประวัติที่อ่านล่าสุด: '+review[item.status]));
-      const button = node('button','เปิดประวัติ '+window.CCTVMode.id('OBS',item.observation_id),'btn');
+        node('small','สถานะรายการล่าสุด: '+review[item.status]));
+      const button = node('button','ดูผลตรวจจับ '+window.CCTVMode.id('OBS',item.observation_id),'btn');
       button.type = 'button'; button.addEventListener('click',() => openHistory(item));
       row.append(button); $('ntList').append(row);
     }
-    if (!latest.length) $('ntList').append(node('p','ยังไม่มีการแจ้งเหตุสงสัยที่บันทึกไว้','nt-empty'));
+    if (!latest.length) $('ntList').append(node('p','ยังไม่มีการแจ้งเตือน','nt-empty'));
   }
   function toast(item, count) {
     toastItem = item;
     clearTimeout(toastTimer);
-    $('ntToastText').textContent = (item.context ? 'โหมดสาธิต · '+(item.context.kind==='captured'?'ผลเดิมจากภาพนิ่ง · ไม่รันใหม่':'สถานการณ์สมมติ')+' · ' : '') + (names[item.event_type] || item.event_type) + ' · ' + item.source_label +
-      ' · รอตรวจสอบโดยผู้ใช้' + (count > 1 ? ' · มีรายการใหม่ในรอบนี้ '+count+' รายการ' : '');
+    $('ntToastText').textContent = (item.context ? 'โหมดสาธิต · '+(item.context.kind==='captured'?'ใช้ผลเดิมจากภาพนิ่ง ไม่ได้ประมวลผลซ้ำ':'สถานการณ์สมมติ')+' · ' : '') + (names[item.event_type] || item.event_type) + ' · ' + item.source_label +
+      ' · รอตรวจสอบ' + (count > 1 ? ' · มีการแจ้งเตือนใหม่ '+count+' รายการ' : '');
     $('ntToast').hidden = false;
     toastTimer = setTimeout(() => { $('ntToast').hidden = true; },12000);
   }
@@ -68,14 +68,14 @@
       cursor = data.cursor; more = data.has_more; recover = false;
       render();
       $('ntCount').textContent = String(data.total);
-      $('ntMessage').textContent = 'ประวัติแจ้งทั้งหมด '+data.total+' รายการ · แสดงล่าสุด 20 รายการ · เวลา Bangkok';
-      $('ntRule').textContent = 'พัก '+data.cooldown_s+' วินาทีต่อรายการประวัติ · รับทราบ/ปิดรายการใน Logs เพื่อหยุดแจ้งซ้ำ';
+      $('ntMessage').textContent = 'มีการแจ้งเตือนทั้งหมด '+data.total+' รายการ · แสดง 20 รายการล่าสุด · เวลาไทย';
+      $('ntRule').textContent = 'เว้นการแจ้งซ้ำสำหรับรายการเดิม '+data.cooldown_s+' วินาที · เปลี่ยนสถานะรายการได้ในประวัติผลตรวจจับ';
       if (fresh.length) toast(fresh.reduce((a,b) => a.id>b.id ? a : b),fresh.length);
     } catch (err) {
       if (token !== modeToken) return;
       recover = true;
       $('ntCount').textContent = '—';
-      $('ntMessage').textContent = 'อ่านการแจ้งเตือนไม่ได้ · '+err.message+' · รายการเดิมด้านล่างเป็นข้อมูลที่อ่านได้ครั้งก่อน';
+      $('ntMessage').textContent = 'โหลดการแจ้งเตือนไม่ได้ · '+err.message+' · รายการด้านล่างเป็นข้อมูลล่าสุดที่อ่านได้';
     } finally {
       clearTimeout(timeout); busy = false;
       if (more || refreshRequested) {

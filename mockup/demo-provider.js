@@ -17,14 +17,14 @@
   const DEFAULTS = {yolo:{thresholds:{person:.25,helmet:.2,vest:.2,fall:.2,fire:.2,smoke:.2},iou:.7,imgsz:640,max_det:300},
     x3d:{fight_threshold:.5},tracking:{proximity_diagonals:.16,motion_diagonals_per_s:.25,max_track_gap_s:.75}};
   const SCENARIOS = [
-    {id:'captured-smoke',label:'ภาพทดสอบ D-Fire · Smoke/Fire · ผลบันทึกจากภาพนิ่ง',kind:'captured',zone:'ชุดทดสอบ D-Fire'},
-    {id:'ppe-ok',label:'สายการผลิต · PPE ครบ · สมมติ',zone:'สายการผลิต',detections:[['person',.94],['helmet',.91],['vest',.89]]},
-    {id:'ppe-missing',label:'จุดรับสินค้า · PPE ไม่ครบ · สมมติ',zone:'จุดรับสินค้า',detections:[['person',.92]]},
-    {id:'fall',label:'ทางเดินโรงงาน · Fall · สมมติ',zone:'ทางเดินโรงงาน',detections:[['person',.91],['fall',.77]],fight:.12},
-    {id:'smoke',label:'คลังสินค้า · Smoke/Fire · สมมติ',zone:'คลังสินค้า',detections:[['smoke',.86],['fire',.36]]},
-    {id:'fight',label:'ลานรับสินค้า · Fight · สมมติ',zone:'ลานรับสินค้า',detections:[['person',.9],['person',.88]],fight:.82},
-    {id:'normal',label:'สายการผลิต · Non-fight · สมมติ',zone:'สายการผลิต',detections:[['person',.93],['helmet',.9],['vest',.88]],fight:.13},
-    {id:'conflict',label:'ทางเดินโรงงาน · Fall/Fight กำกวม · สมมติ',zone:'ทางเดินโรงงาน',detections:[['person',.9],['fall',.79]],fight:.81},
+    {id:'captured-smoke',label:'ภาพทดสอบ D-Fire · ควันและไฟ · ผลเดิมจากภาพนิ่ง',kind:'captured',zone:'ชุดทดสอบ D-Fire'},
+    {id:'ppe-ok',label:'สายการผลิต · พบอุปกรณ์ป้องกันครบ · สมมติ',zone:'สายการผลิต',detections:[['person',.94],['helmet',.91],['vest',.89]]},
+    {id:'ppe-missing',label:'จุดรับสินค้า · ไม่พบหมวกและเสื้อสะท้อนแสง · สมมติ',zone:'จุดรับสินค้า',detections:[['person',.92]]},
+    {id:'fall',label:'ทางเดินโรงงาน · สงสัยคนล้ม · สมมติ',zone:'ทางเดินโรงงาน',detections:[['person',.91],['fall',.77]],fight:.12},
+    {id:'smoke',label:'คลังสินค้า · สงสัยควันและไฟ · สมมติ',zone:'คลังสินค้า',detections:[['smoke',.86],['fire',.36]]},
+    {id:'fight',label:'ลานรับสินค้า · สงสัยการทะเลาะ · สมมติ',zone:'ลานรับสินค้า',detections:[['person',.9],['person',.88]],fight:.82},
+    {id:'normal',label:'สายการผลิต · ไม่พบสัญญาณทะเลาะ · สมมติ',zone:'สายการผลิต',detections:[['person',.93],['helmet',.9],['vest',.88]],fight:.13},
+    {id:'conflict',label:'ทางเดินโรงงาน · ผลล้มและทะเลาะยังไม่ชัดเจน · สมมติ',zone:'ทางเดินโรงงาน',detections:[['person',.9],['fall',.79]],fight:.81},
     {id:'empty',label:'คลังสินค้า · ไม่พบผล · สมมติ',zone:'คลังสินค้า',detections:[]},
     {id:'below',label:'คลังสินค้า · Smoke ต่ำกว่าเกณฑ์แจ้ง · สมมติ',zone:'คลังสินค้า',detections:[['smoke',.34]]}
   ];
@@ -74,7 +74,7 @@
       return {mode:'demo',kind:scenario.kind==='captured'?'captured':'synthetic',source:scenario.label,
         captured_at:capture?.captured_at||null,evidence:capture?.evidence||null,
         recorded_settings:capture?.settings||null,recorded_device:capture?.device_used||null,
-        note:scenario.kind==='captured'?'ผลโมเดลที่บันทึกจากภาพทดสอบ D-Fire กลางแจ้ง · ไม่ใช่ภาพจากโรงงาน · เล่นซ้ำจากภาพนิ่ง ไม่ได้รันโมเดลใหม่ · คะแนนเดิม Smoke 0.8779 / Fire 0.3589':'สถานการณ์สมมติ · ภาพวาดและคะแนนตัวอย่าง ไม่ใช่ผลโมเดล'};
+        note:scenario.kind==='captured'?'ผลเดิมจากภาพทดสอบ D-Fire กลางแจ้ง · ไม่ใช่ภาพจากโรงงาน · ใช้ผลจากภาพนิ่ง ไม่ได้ประมวลผลโมเดลซ้ำ · คะแนนเดิม Smoke 0.8779 / Fire 0.3589':'สถานการณ์สมมติ · ภาพวาดและคะแนนตัวอย่าง ไม่ใช่ผลจากการประมวลผลโมเดล'};
     }
     begin(scenario, sourceType='live', settings=this.settings, context=this.context(scenario)) {
       const sourceLabel=scenario.kind==='captured'

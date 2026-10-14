@@ -35,7 +35,7 @@
     if (source) source.placeholder = isFile ? 'เลือกไฟล์วิดีโอจากเครื่อง' : 'rtsp://กล้องในเครือข่าย/stream';
     if (sourceHelp) {
       sourceHelp.textContent = isFile
-        ? 'เลือกวิดีโอจากเครื่องเพื่อ replay · อัปโหลดเป็นไฟล์ชั่วคราวและลบเมื่อ session จบ · MP4, AVI, MOV, MKV ไม่เกิน 100 MB'
+        ? 'เลือกวิดีโอจากเครื่องเพื่อทดสอบ · ระบบจะลบไฟล์ชั่วคราวเมื่อจบ · MP4, AVI, MOV, MKV ไม่เกิน 100 MB'
         : 'กรอก URL ของกล้อง RTSP ที่เครื่องนี้เข้าถึงได้ · URL ที่มีรหัสผ่านเป็นข้อมูลลับ อย่าแชร์หรือโพสต์ในที่สาธารณะ';
     }
   }
@@ -44,19 +44,19 @@
     if (!deviceHelp) return;
     if (device.value === 'cuda') {
       if (cudaAvailable === false) {
-        deviceHelp.textContent = 'ยังใช้ GPU ไม่ได้: PyTorch ใน runtime นี้ไม่พบ CUDA · เลือก Auto หรือ CPU';
+        deviceHelp.textContent = 'เครื่องนี้ยังใช้ GPU ผ่าน CUDA ไม่ได้ · เลือกอัตโนมัติหรือ CPU';
         deviceHelp.style.color = '#fca5a5';
       } else if (cudaAvailable === true) {
-        deviceHelp.textContent = 'YOLO/X3D ใช้ GPU · YuNet อาจยังใช้ CPU';
+        deviceHelp.textContent = 'YOLO/X3D จะใช้ GPU · YuNet อาจใช้ CPU';
         deviceHelp.style.color = 'var(--muted2)';
       } else {
-        deviceHelp.textContent = 'ยังตรวจ CUDA ไม่สำเร็จ · กดเริ่มเพื่อลองตรวจอีกครั้ง';
+        deviceHelp.textContent = 'ตรวจสอบ GPU ไม่สำเร็จ · กดเริ่มเพื่อลองอีกครั้ง';
       }
     } else if (device.value === 'auto' && cudaAvailable === true) {
-      deviceHelp.textContent = 'Auto เลือก GPU ให้ YOLO/X3D เมื่อพร้อม · YuNet อาจใช้ CPU';
+      deviceHelp.textContent = 'ระบบเลือก GPU ให้ YOLO/X3D เมื่อพร้อม · YuNet อาจใช้ CPU';
       deviceHelp.style.color = 'var(--muted2)';
     } else if (device.value === 'auto' && cudaAvailable === false) {
-      deviceHelp.textContent = 'Auto ใช้ CPU เพราะ runtime นี้ไม่พบ PyTorch CUDA';
+      deviceHelp.textContent = 'ระบบเลือกใช้ CPU เพราะเครื่องนี้ยังใช้ CUDA ไม่ได้';
       deviceHelp.style.color = 'var(--muted2)';
     } else {
       deviceHelp.textContent = 'ทุกเครื่องใช้ CPU ได้';
@@ -80,7 +80,7 @@
     if (fileMode) {
       if (uploadEndpointMissing) {
         event.preventDefault(); event.stopImmediatePropagation();
-        report('API ยังไม่มี endpoint อัปโหลด Live · หยุดและเปิด Uvicorn จาก .venv-test ใหม่');
+        report('ระบบยังไม่รองรับการเลือกไฟล์วิดีโอสำหรับเฝ้าระวัง · เริ่มบริการใหม่เพื่ออัปเดต');
         return;
       }
       const file = sourceFile && sourceFile.files && sourceFile.files[0];
@@ -103,13 +103,13 @@
       }
     } else if (!source || !source.value.trim()) {
       event.preventDefault(); event.stopImmediatePropagation();
-      report('กรุณากรอก RTSP URL ก่อนเริ่ม Live');
+        report('กรุณากรอกที่อยู่ RTSP ของกล้องก่อนเริ่มเฝ้าระวัง');
       if (source) source.focus();
       return;
     }
     if (device && device.value === 'cuda' && cudaAvailable === false) {
       event.preventDefault(); event.stopImmediatePropagation();
-      report('เริ่มไม่ได้เพราะ PyTorch runtime ไม่พบ CUDA · เลือก Auto หรือ CPU');
+      report('เริ่มไม่ได้เพราะเครื่องนี้ยังใช้ CUDA ไม่ได้ · เลือกอัตโนมัติหรือ CPU');
     }
   }, true);
 
@@ -118,7 +118,7 @@
   let runtimeGeneration=0;
   function loadRuntime(){
     const token=++runtimeGeneration;
-    if(window.CCTVMode.active){runtimeStatus.textContent='โหมดสาธิต · ไม่ได้รัน YOLO/X3D/YuNet';deviceHelp.textContent='ไม่ได้เลือกอุปกรณ์ประมวลผลจริง';return;}
+    if(window.CCTVMode.active){runtimeStatus.textContent='โหมดสาธิต · ไม่ได้เปิดกล้องหรือประมวลผลโมเดล';deviceHelp.textContent='ไม่มีการเลือกอุปกรณ์ประมวลผลจริง';return;}
   window.CCTVMode.fetch('/api/health').then(async response => {
     const body = await response.json();
     if(token!==runtimeGeneration)return;
@@ -134,17 +134,17 @@
     if(token!==runtimeGeneration)return;
     uploadEndpointMissing = uploadRoute.status === 404;
     runtimeStatus.textContent = uploadEndpointMissing
-      ? 'API รุ่นเก่า · ไม่พบ file-upload route · รีสตาร์ต Uvicorn'
-      : cudaAvailable ? `API พร้อม · YOLO/X3D ใช้ CUDA${gpuName} · YuNet ใช้ CPU` : 'API พร้อม · ใช้ CPU';
+      ? 'ระบบวิเคราะห์ยังไม่รองรับการเลือกไฟล์ · เริ่มบริการใหม่เพื่ออัปเดต'
+      : cudaAvailable ? `ระบบพร้อม · YOLO/X3D ใช้ CUDA${gpuName} · YuNet ใช้ CPU` : 'ระบบพร้อม · ใช้ CPU';
     if (uploadEndpointMissing && sourceType.value === 'file') {
-      report('ต้องรีสตาร์ต backend เพื่อเปิดใช้การเลือกไฟล์ Live');
+      report('เริ่มบริการใหม่เพื่อเปิดใช้การเลือกไฟล์วิดีโอ');
     }
     runtimeStatus.style.color = uploadEndpointMissing ? '#fca5a5' : 'var(--muted)';
     updateDeviceHelp();
   }).catch(() => {
     if(token!==runtimeGeneration)return;
     cudaAvailable = null;
-    runtimeStatus.textContent = 'ตรวจสถานะ API ไม่ได้ · ตรวจว่า backend ทำงานอยู่';
+    runtimeStatus.textContent = 'ตรวจสอบสถานะระบบไม่ได้ · ตรวจว่าบริการกำลังทำงาน';
     runtimeStatus.style.color = '#fca5a5';
     updateDeviceHelp();
   });

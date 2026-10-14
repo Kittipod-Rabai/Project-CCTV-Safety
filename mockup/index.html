@@ -467,7 +467,7 @@ body:is([data-page="analyze"],[data-page="logs"],[data-page="dashboard"],[data-p
 .az-flag.no{color:#fca5a5;background:#450a0a66}
 .az-ppe-badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
 .az-derived{font-size:11px;font-weight:600;padding:2.5px 8px;border-radius:6px;border:1px dashed #f472b6;color:#f9a8d4;background:#f472b61a}
-.az-derived::before{content:"derived · ";font-family:var(--mono);font-weight:700;opacity:.8}
+.az-derived::before{content:"ประเมิน · ";font-weight:700;opacity:.8}
 .az-derived.ok{border-color:#16a34a;color:#86efac;background:#052e1655}
 .az-ppe-method{font-family:var(--mono);font-size:10.5px;color:var(--muted2);margin-top:5px}
 /* round 2: summary-first layout */
@@ -764,25 +764,25 @@ body[data-mode="demo"] .db-controls{flex-wrap:wrap}
     <div class="nav-label">เมนูหลัก</div>
     <button class="nav-item on" data-go="dashboard">
       <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
-      Dashboard
+      ภาพรวม
     </button>
     <button class="nav-item" data-go="live">
       <svg viewBox="0 0 24 24"><path d="M2.5 7.5h13v9h-13z" rx="2"/><path d="M15.5 11l6-3.5v9l-6-3.5z"/></svg>
-      Live Monitoring
+      เฝ้าระวังสด
       <span class="nav-badge" id="navLive">3</span>
     </button>
     <button class="nav-item" data-go="logs">
       <svg viewBox="0 0 24 24"><path d="M10.3 3.2 2.6 17a1.8 1.8 0 0 0 1.6 2.7h15.6A1.8 1.8 0 0 0 21.4 17L13.7 3.2a1.9 1.9 0 0 0-3.4 0z"/><path d="M12 9v4.5M12 17h.01"/></svg>
-      Alerts / Logs
+      แจ้งเตือนและประวัติ
       <span class="nav-badge" id="navLogs">—</span>
     </button>
     <button class="nav-item" data-go="analyze">
       <svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 15v4a1.5 1.5 0 0 0 1.5 1.5h13A1.5 1.5 0 0 0 20 19v-4"/></svg>
-      Upload &amp; Analyze
+      วิเคราะห์ภาพและวิดีโอ
     </button>
 
     <div class="nav-label">อื่นๆ</div>
-    <button class="nav-item" type="button" disabled title="ส่วนนี้ยังไม่พร้อมใช้งานใน pilot">
+    <button class="nav-item" type="button" disabled title="ส่วนนี้ยังไม่เปิดให้ใช้งาน">
       <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg>
       จัดการกล้อง <span class="nav-soon">เร็วๆ นี้</span>
     </button>
@@ -806,13 +806,13 @@ body[data-mode="demo"] .db-controls{flex-wrap:wrap}
   <main>
     <header class="topbar">
       <div>
-        <h1 id="pgTitle">ภาพรวมผลวิเคราะห์</h1>
-        <div class="sub" id="pgSub">สรุปประวัติจริงและสถานะ Live pilot</div>
+      <h1 id="pgTitle">ภาพรวมผลตรวจจับ</h1>
+      <div class="sub" id="pgSub">สรุปผลตรวจจับและสถานะการเฝ้าระวัง</div>
       </div>
       <div class="spacer"></div>
       <span class="chip-mock">MOCKUP · ข้อมูลจำลอง</span>
-      <span class="chip-real">หน้าเรียก API จริง · pilot</span>
-      <button class="btn nt-toggle" id="ntToggle" type="button" aria-controls="ntPanel" aria-expanded="false"><span id="ntToggleLabel">เหตุสงสัยทั้งหมด</span><span id="ntCount" title="จำนวนประวัติแจ้งทั้งหมดที่บันทึก">—</span></button>
+      <span class="chip-real">โหมดจริง · เชื่อมต่อระบบวิเคราะห์</span>
+      <button class="btn nt-toggle" id="ntToggle" type="button" aria-controls="ntPanel" aria-expanded="false"><span id="ntToggleLabel">การแจ้งเตือน</span><span id="ntCount" title="จำนวนการแจ้งเตือนทั้งหมด">—</span></button>
       <span class="clock" id="clock">--:--:--</span>
       <div class="avatar">OP</div>
     </header>
@@ -824,54 +824,54 @@ body[data-mode="demo"] .db-controls{flex-wrap:wrap}
         <p>ระบบช่วยเฝ้าระวังความปลอดภัยจากภาพและวิดีโอด้วย AI</p>
       </div>
       <div class="card db-intro">
-        <div><h2 id="dbTitle">ภาพรวมผลวิเคราะห์ที่บันทึกจริง</h2><p><span data-demo-copy="สรุปจากข้อมูลเดโมในหน่วยความจำ · ไม่ใช่เหตุที่ยืนยันแล้ว">สรุปจาก SQLite · รายการผลโมเดลยังไม่ใช่เหตุที่ยืนยันแล้ว</span></p></div>
-        <div class="db-controls"><label for="dbPeriod">ช่วงเวลาบันทึก</label><select id="dbPeriod"><option value="today">วันนี้ (Bangkok)</option><option value="7d" selected>7 วันตามปฏิทินรวมวันนี้</option><option value="all">ทั้งหมด</option></select><button class="btn" id="dbRefresh" type="button">รีเฟรชภาพรวม</button></div>
+        <div><h2 id="dbTitle">ภาพรวมผลตรวจจับที่บันทึก</h2><p><span data-demo-copy="สรุปจากข้อมูลสาธิต · ผลตรวจจับยังไม่ใช่การยืนยันว่าเกิดเหตุ">สรุปจากประวัติผลตรวจจับที่บันทึกไว้</span></p></div>
+        <div class="db-controls"><label for="dbPeriod">ช่วงเวลาบันทึก</label><select id="dbPeriod"><option value="today">วันนี้ (เวลาไทย)</option><option value="7d" selected>7 วันตามปฏิทินรวมวันนี้</option><option value="all">ทั้งหมด</option></select><button class="btn" id="dbRefresh" type="button">อัปเดตภาพรวม</button></div>
       </div>
       <p id="dbMessage" role="status" aria-live="polite">กำลังอ่านข้อมูลภาพรวม…</p>
-      <p id="dbDemoSeed" class="db-caption db-demo-seed" hidden>ข้อมูลตั้งต้นจำลองย้อนหลัง 7 วัน: 28 รอบ · กราฟนับรายการผลสรุป แยกจากจำนวนรอบ · รอบที่สร้างระหว่างเดโมจะเพิ่มต่อจากชุดตั้งต้น</p>
+      <p id="dbDemoSeed" class="db-caption db-demo-seed" hidden>ข้อมูลสาธิตย้อนหลัง 7 วัน มี 28 รอบวิเคราะห์ · กราฟแสดงจำนวนรายการผลตรวจจับ ซึ่งอาจไม่เท่ากับจำนวนรอบ</p>
       <div class="kpis">
-        <div class="card kpi"><div class="lbl">รายการผลโมเดล</div><div class="val" id="dbTotal">—</div><div class="delta">หนึ่งรายการต่อรอบ / ประเภทผล / โมเดล</div></div>
+        <div class="card kpi"><div class="lbl">รายการผลตรวจจับ</div><div class="val" id="dbTotal">—</div><div class="delta">รวมผลประเภทเดียวกันในรอบและโมเดลเดียวเป็นหนึ่งรายการ</div></div>
         <div class="card kpi"><div class="lbl">รอตรวจสอบในช่วงที่เลือก</div><div class="val" id="dbPending">—</div><div class="delta" id="dbReviewed">รับทราบ — · ปิดรายการ —</div></div>
         <div class="card kpi"><div class="lbl">รอบวิเคราะห์ที่เริ่มในช่วงที่เลือก</div><div class="val" id="dbRuns">—</div><div class="delta">รวมรอบที่ไม่พบผลตรวจจับ</div></div>
-        <div class="card kpi"><div class="lbl"><span data-demo-copy="เซสชัน Live สาธิตล่าสุด">เซสชัน Live ล่าสุดของ backend นี้</span></div><div class="val db-session-state" id="dbLiveState">—</div><div class="delta">แยกจากช่วงเวลาของประวัติ</div></div>
+        <div class="card kpi"><div class="lbl"><span data-demo-copy="สถานะการเฝ้าระวังในสถานการณ์สาธิต">สถานะการเฝ้าระวังล่าสุด</span></div><div class="val db-session-state" id="dbLiveState">—</div><div class="delta">แสดงแยกจากประวัติผลตรวจจับ</div></div>
       </div>
       <div class="grid2">
         <section class="card"><div class="card-h"><h3>รายการแยกตามวันที่บันทึก</h3></div><p class="db-caption">แสดง 7 วันตามปฏิทินรวมวันนี้ใน Asia/Bangkok ภายในช่วงที่เลือก</p><div id="dbDaily" class="db-series" aria-label="กราฟจำนวนรายการรายวัน"></div></section>
-        <section class="card"><div class="card-h"><h3>รายการแยกประเภทผล</h3></div><p class="db-caption">นับแถวสรุปในประวัติ รวม Non-fight และผล PPE จากกฎ</p><div id="dbTypes" class="db-series" aria-label="กราฟจำนวนรายการแยกประเภท"></div></section>
+        <section class="card"><div class="card-h"><h3>รายการแยกตามประเภทผล</h3></div><p class="db-caption">รวมผล PPE ที่คำนวณจากกฎ และผลประเมินว่าไม่พบการทะเลาะ</p><div id="dbTypes" class="db-series" aria-label="กราฟจำนวนรายการแยกประเภท"></div></section>
       </div>
       <div class="grid2b">
-        <section class="card"><div class="card-h"><h3 data-demo-copy="สถานะเซสชันสาธิต">สถานะเซสชันจริง</h3><button class="btn" data-go="live" type="button">เปิด Live pilot</button></div><div id="dbLive" class="db-live"></div><p id="dbLiveMessage" class="db-caption" role="status" aria-live="polite"></p><p class="db-caption">รองรับแหล่งภาพครั้งละหนึ่งรายการ สถานะนี้ไม่ได้บอกจำนวนกล้องออนไลน์</p></section>
-        <section class="card"><div class="card-h"><h3>ผลโมเดลล่าสุดในช่วงที่เลือก</h3><button class="btn" data-go="logs" type="button">ดูประวัติทั้งหมด</button></div><div id="dbLatest" class="db-latest"></div></section>
+        <section class="card"><div class="card-h"><h3 data-demo-copy="สถานะการเฝ้าระวังสาธิต">สถานะการเฝ้าระวังล่าสุด</h3><button class="btn" data-go="live" type="button">เปิดหน้าเฝ้าระวัง</button></div><div id="dbLive" class="db-live"></div><p id="dbLiveMessage" class="db-caption" role="status" aria-live="polite"></p><p class="db-caption">ตรวจจับจากแหล่งภาพได้ครั้งละหนึ่งรายการ</p></section>
+        <section class="card"><div class="card-h"><h3>ผลตรวจจับล่าสุดในช่วงที่เลือก</h3><button class="btn" data-go="logs" type="button">ดูประวัติ</button></div><div id="dbLatest" class="db-latest"></div></section>
       </div>
-      <p class="note">วันที่ใช้เวลาบันทึกรายการครั้งแรก ไม่ใช่เวลาในวิดีโอ การเพิ่ม observations ในรายการ Live เดิมไม่เพิ่มจำนวนรายการหรือย้ายวันที่ กรณีเลือกทั้งหมด กราฟรายวันแสดงเฉพาะ 7 วันล่าสุด ส่วนยอดรวมและประเภทผลครอบคลุมทั้งหมด</p>
+      <p class="note">วันที่ในกราฟอ้างอิงเวลาที่บันทึกผลครั้งแรก ไม่ใช่เวลาในวิดีโอ ผลที่พบซ้ำระหว่าง Live จะรวมในรายการเดิม กรณีเลือก “ทั้งหมด” กราฟรายวันจะแสดงเฉพาะ 7 วันล่าสุด</p>
       <p class="note" id="dbUpdated">ยังไม่ได้อ่านข้อมูล</p>
     </section>
 
     <section class="view" id="v-settings" aria-labelledby="stTitle">
       <div class="card st-card">
-        <h2 id="stTitle">ค่าตั้งต้นการวิเคราะห์ที่บันทึกในเครื่อง</h2>
-        <p><span data-demo-copy="ใช้กับรอบสาธิตถัดไป งานที่เริ่มแล้วใช้ snapshot เดิม · ไม่บันทึกค่าระบบจริง">ใช้กับ Stage 1, Stage 2, Pipeline และ Live session ที่เริ่มครั้งถัดไป งานที่กำลังทำจะใช้ค่าตอนเริ่มต่อจนจบ</span></p>
-        <p>ค่าความมั่นใจและ Fight threshold ของโมเดลแยกจากเกณฑ์แจ้งเหตุสงสัย ไม่ได้ปรับเกณฑ์แจ้งเตือน ความเป็นส่วนตัว หรืออุปกรณ์ประมวลผลจากหน้านี้</p>
+        <h2 id="stTitle">ตั้งค่าการวิเคราะห์</h2>
+        <p><span data-demo-copy="ค่าที่บันทึกจะใช้กับรอบสาธิตถัดไป งานที่เริ่มแล้วจะใช้ค่าเดิมจนจบ">ค่าที่บันทึกจะใช้กับการวิเคราะห์และการเฝ้าระวังรอบถัดไป งานที่เริ่มแล้วจะใช้ค่าเดิมจนจบ</span></p>
+        <p>ค่าคะแนนมีผลต่อการตรวจจับและการประเมินการทะเลาะ แต่ไม่เปลี่ยนเกณฑ์แจ้งเตือน ความเป็นส่วนตัว หรืออุปกรณ์ประมวลผล</p>
         <p id="stRevision">ยังไม่ได้อ่านค่าบันทึก</p>
         <p id="stMessage" role="status" aria-live="polite">กำลังโหลด…</p>
         <form id="stForm">
           <div id="stFields" class="st-grid"></div>
-          <div class="st-actions"><button class="btn primary" id="stSave" type="submit" disabled>บันทึกค่าตั้งต้น</button><button class="btn" id="stLoad" type="button">โหลดค่าปัจจุบัน</button><button class="btn" id="stDefaults" type="button" disabled>ใส่ค่าเริ่มต้นในฟอร์ม</button></div>
+          <div class="st-actions"><button class="btn primary" id="stSave" type="submit" disabled>บันทึกการตั้งค่า</button><button class="btn" id="stLoad" type="button">โหลดค่าล่าสุด</button><button class="btn" id="stDefaults" type="button" disabled>คืนค่าเริ่มต้น</button></div>
         </form>
-        <p>แก้ค่าในฟอร์มแล้วยังไม่มีผลจนกดบันทึก หากมีหน้าต่างอื่นบันทึกก่อน ระบบจะให้โหลดค่าปัจจุบันเพื่อป้องกันการเขียนทับ</p>
+        <p>การแก้ไขจะมีผลเมื่อกดบันทึก หากมีการบันทึกค่าจากหน้าต่างอื่นก่อน ให้โหลดค่าล่าสุดก่อนบันทึกอีกครั้ง</p>
       </div>
     </section>
 
     <!-- ---------- LIVE ---------- -->
     <section class="view live" id="v-live">
       <section class="card live-pilot" aria-labelledby="livePilotTitle">
-        <div class="card-h live-pilot-heading"><span class="live-pilot-badge"><span data-demo-copy="Live สาธิต · แหล่งภาพเดียว · ไม่ inference ใหม่">Live pilot · ประมวลผลจริง</span></span><h3 id="livePilotTitle">ทดสอบแหล่งภาพหนึ่งรายการ</h3><span id="liveRuntimeStatus" class="hint" role="status" aria-live="polite">กำลังตรวจ API และอุปกรณ์…</span><span id="liveRealStatus" class="hint" role="status" aria-live="polite">ยังไม่เริ่ม session</span></div>
+        <div class="card-h live-pilot-heading"><span class="live-pilot-badge"><span data-demo-copy="เล่นสถานการณ์สาธิต · ใช้ผลที่เตรียมไว้">เฝ้าระวังแบบ Live · ประมวลผลจริง</span></span><h3 id="livePilotTitle">เริ่มเฝ้าระวังจากแหล่งภาพ</h3><span id="liveRuntimeStatus" class="hint" role="status" aria-live="polite">กำลังตรวจระบบและอุปกรณ์…</span><span id="liveRealStatus" class="hint" role="status" aria-live="polite">ยังไม่เริ่มตรวจจับ</span></div>
         <div class="live-pilot-controls">
           <div class="field"><label for="liveSourceType">1. แหล่งภาพ</label><select id="liveSourceType"><option value="file">เลือกไฟล์วิดีโอ · แนะนำสำหรับทดสอบ</option><option value="rtsp">กล้อง RTSP · ยังไม่ได้ทดสอบกับกล้องจริง</option></select></div>
           <div class="field" id="liveSourcePathField"><label id="liveSourceLabel" for="liveSource">2. ที่อยู่ไฟล์หรือกล้อง</label><input id="liveSource" type="text" placeholder="rtsp://กล้องในเครือข่าย/stream" autocomplete="off" spellcheck="false"></div>
           <div class="field" id="liveSourceFileField" hidden><label for="liveSourceFile">2. เลือกไฟล์วิดีโอ</label><div class="az-file-control"><input id="liveSourceFile" type="file" accept="video/mp4,video/x-msvideo,video/quicktime,video/x-matroska,.mp4,.avi,.mov,.mkv"><label class="btn primary az-file-picker" for="liveSourceFile">เลือกไฟล์…</label><span id="liveSourceFileName" class="live-source-help">ยังไม่ได้เลือกไฟล์</span></div></div>
           <small class="live-source-help live-source-guidance" id="liveSourceHelp">กำลังตรวจแหล่งภาพ…</small>
-          <div class="field"><label for="liveModel">3. โมเดล YOLO (Stage 1)</label><select id="liveModel"><option value="yolov8n">YOLOv8n · เร็ว</option><option value="yolov8s">YOLOv8s · แม่นยำขึ้น</option></select><small class="live-source-help">X3D-S (Stage 2) จะประเมิน Fight อัตโนมัติเมื่อมีวิดีโอ</small></div>
+          <div class="field"><label for="liveModel">3. รุ่นโมเดลตรวจจับ (YOLO)</label><select id="liveModel"><option value="yolov8n">YOLOv8n · เร็ว</option><option value="yolov8s">YOLOv8s · ละเอียดขึ้น</option></select><small class="live-source-help">X3D-S จะช่วยประเมินเหตุทะเลาะเมื่อใช้วิดีโอ</small></div>
           <div class="field"><label for="liveDevice">อุปกรณ์ประมวลผล</label><select id="liveDevice"><option value="auto">Auto · แนะนำ</option><option value="cpu">CPU</option><option value="cuda">GPU NVIDIA CUDA · YOLO/X3D</option></select><small class="live-source-help" id="liveDeviceHelp">กำลังตรวจ CUDA…</small></div>
           <div class="live-actions"><button class="btn primary" id="liveStart">เริ่ม Live</button><button class="btn" id="liveStop" disabled>หยุด</button></div>
         </div>
@@ -880,8 +880,8 @@ body[data-mode="demo"] .db-controls{flex-wrap:wrap}
           <img id="liveRealPreview" class="live-real-preview" alt="Live preview ที่ผ่านการเบลอใบหน้า" hidden>
           <div class="live-real-side">
             <section class="live-real-confidence" aria-labelledby="liveConfidenceTitle">
-              <div class="live-real-confidence-head"><h4 id="liveConfidenceTitle">ค่าความเชื่อมั่นล่าสุด</h4><small id="liveRealConfidenceMeta">รอผลจากโมเดลจริง</small></div>
-              <div id="liveRealConfidence" class="live-real-confidence-list" aria-live="polite"><div class="live-confidence-empty">เริ่ม Live เพื่อดูคะแนน YOLO และ X3D</div></div>
+              <div class="live-real-confidence-head"><h4 id="liveConfidenceTitle">คะแนนความมั่นใจของผลตรวจจับล่าสุด</h4><small id="liveRealConfidenceMeta">รอผลจากโมเดลจริง</small></div>
+              <div id="liveRealConfidence" class="live-real-confidence-list" aria-live="polite"><div class="live-confidence-empty">เริ่มเฝ้าระวังเพื่อดูคะแนนจาก YOLO และ X3D</div></div>
               <div id="liveRealMetrics" class="live-real-metrics" aria-live="polite">เวลาประมวลผลรายขั้นจะปรากฏเมื่อเริ่ม Live</div>
             </section>
             <section class="live-real-events-panel" aria-labelledby="liveRealEventsTitle">
@@ -909,7 +909,7 @@ body[data-mode="demo"] .db-controls{flex-wrap:wrap}
         </button>
         <div class="spacer"></div>
         <span class="clock" id="liveClock">--:--:--</span>
-        <button class="btn" disabled title="เพิ่มกล้องยังไม่พร้อมใช้งานใน pilot">
+        <button class="btn" disabled title="การเพิ่มกล้องยังไม่เปิดให้ใช้งาน">
           <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
           เพิ่มกล้อง · เร็วๆ นี้
         </button>
@@ -924,7 +924,7 @@ body[data-mode="demo"] .db-controls{flex-wrap:wrap}
             <div class="det-list" id="detList"></div>
           </div>
           <div class="card" style="display:flex;flex-direction:column;min-height:0">
-            <div class="card-h"><span class="dot ok pulse"></span><h3>Live Event Stream</h3></div>
+            <div class="card-h"><span class="dot ok pulse"></span><h3>รายการผลตรวจจับล่าสุด</h3></div>
             <div class="feed" id="feed"></div>
           </div>
         </div>
@@ -936,7 +936,7 @@ body[data-mode="demo"] .db-controls{flex-wrap:wrap}
     <section class="view" id="v-logs">
       <div class="mock-banner" role="note"><span data-demo-copy="ประวัติสาธิต · มีทั้งสถานการณ์สมมติและผลที่บันทึกไว้ · ไม่ใช่เหตุที่ยืนยันแล้ว">ประวัติผลจากโมเดลจริง · รอตรวจสอบโดยผู้ใช้ · ไม่ใช่เหตุที่ยืนยันแล้ว</span></div>
       <div class="filters">
-        <div class="field"><input id="rlSearch" aria-label="ค้นหาประวัติ" placeholder="ค้นหาชื่อไฟล์ / โมเดล / รหัสรายการ"></div>
+        <div class="field"><input id="rlSearch" aria-label="ค้นหาประวัติ" placeholder="ค้นหาชื่อไฟล์ รุ่นโมเดล หรือรหัสผล"></div>
         <div class="field"><select id="rlPeriod" aria-label="ช่วงเวลาบันทึก">
           <option value="all">ทุกช่วงเวลา</option><option value="today">วันนี้</option>
           <option value="yesterday">เมื่อวาน</option><option value="7d">7 วันล่าสุด</option>
@@ -952,24 +952,24 @@ body[data-mode="demo"] .db-controls{flex-wrap:wrap}
       </div>
       <div id="rlMessage" role="status" aria-live="polite"></div>
       <div class="card"><div class="tb-wrap"><table>
-        <thead><tr><th>รหัส / เวลาบันทึก</th><th>แหล่งไฟล์ / เซสชัน</th><th>ผลตรวจจับ / โมเดล</th>
-          <th>เวลาในวิดีโอ</th><th>คะแนนสูงสุด</th><th>Observations</th><th>สถานะตรวจสอบ</th><th>รายละเอียด</th></tr></thead>
+        <thead><tr><th>รหัสผล / เวลาบันทึก</th><th>แหล่งภาพ / รอบตรวจจับ</th><th>ผลตรวจจับ / รุ่นโมเดล</th>
+          <th>เวลาในวิดีโอ</th><th>คะแนนสูงสุด</th><th>จำนวนผลที่รวม</th><th>สถานะตรวจสอบ</th><th>รายละเอียด</th></tr></thead>
         <tbody id="rlBody"></tbody>
       </table><div class="empty" id="rlEmpty" hidden>ยังไม่มีผลตรวจจับที่ตรงกับตัวกรอง</div></div>
       <div class="pager"><span id="rlInfo" class="info"></span><div class="spacer"></div>
         <button class="pg" id="rlPrev" type="button" aria-label="หน้าก่อนหน้า" title="หน้าก่อนหน้า">‹</button>
         <button class="pg" id="rlNext" type="button" aria-label="หน้าถัดไป" title="หน้าถัดไป">›</button>
       </div></div>
-      <p class="note"><span data-demo-copy="ข้อมูลโหมดสาธิตอยู่ในหน่วยความจำ · ไม่เขียนฐานข้อมูลจริง">บันทึกลงฐานข้อมูลในเครื่อง</span> · เวลาบันทึกแสดงตาม Asia/Bangkok และแยกจากเวลาในวิดีโอ
-        · รวมประเภทเดียวกันต่อรอบวิเคราะห์/เซสชัน · Observations ไม่ใช่จำนวนคนหรือจำนวนเหตุจริง
-        · คะแนน PPE เป็นคะแนน person ที่ใช้ประกอบกฎ ไม่ใช่ความน่าจะเป็นว่าไม่สวมอุปกรณ์</p>
+      <p class="note"><span data-demo-copy="ข้อมูลสาธิตเก็บไว้ชั่วคราวในหน่วยความจำ ไม่บันทึกในระบบจริง">ผลที่บันทึกไว้เก็บในฐานข้อมูลของเครื่องนี้</span> · เวลาในรายการแยกจากเวลาในวิดีโอ
+        · ผลชนิดเดียวกันในรอบเดียวจะรวมไว้ในรายการเดียว จำนวนผลที่รวมไม่ใช่จำนวนคนหรือจำนวนเหตุที่ยืนยันแล้ว
+        · คะแนน PPE คือคะแนนตรวจพบบุคคลที่ใช้ประกอบกฎ ไม่ใช่ความน่าจะเป็นว่าไม่สวมอุปกรณ์</p>
     </section>
 
     <!-- ---------- UPLOAD & ANALYZE (real inference via API; logic in analyze.js) ---------- -->
     <section class="view" id="v-analyze">
       <div class="az-top">
         <div class="card">
-          <div class="card-h"><h3 data-demo-copy="วิเคราะห์สถานการณ์สาธิต">อัปโหลดไฟล์</h3>
+        <div class="card-h"><h3 data-demo-copy="เลือกสถานการณ์สาธิต">วิเคราะห์ภาพหรือวิดีโอ</h3>
             <span class="az-api" role="status"><span class="dot" id="azApiDot"></span><span id="azApiText">กำลังตรวจสถานะ API …</span></span>
             <span class="hint">ภาพ: jpg jpeg png bmp webp · วิดีโอ: mp4 avi mov mkv · สูงสุด 100 MB</span></div>
           <div class="az-form">
@@ -1007,23 +1007,23 @@ body[data-mode="demo"] .db-controls{flex-wrap:wrap}
                 วิเคราะห์ไฟล์
               </button>
             </div>
-            <div class="az-saved-settings"><label><input id="azUseSavedSettings" type="checkbox" checked> <span id="azUseSavedSettingsLabel">ใช้ค่าที่บันทึกจากหน้าตั้งค่าระบบ</span></label><small id="azSavedSettingsMeta">backend จะอ่านค่าที่บันทึกเมื่อเริ่มวิเคราะห์</small></div>
+            <div class="az-saved-settings"><label><input id="azUseSavedSettings" type="checkbox" checked> <span id="azUseSavedSettingsLabel">ใช้ค่าที่บันทึกจากหน้าตั้งค่าระบบ</span></label><small id="azSavedSettingsMeta">ระบบจะใช้ค่าที่บันทึกเมื่อเริ่มวิเคราะห์</small></div>
             <details class="az-model-settings">
               <summary class="az-settings-summary">ตั้งค่าขั้นสูง · YOLO, X3D และ Tracking <small>ยกเลิกใช้ค่าที่บันทึกเพื่อปรับเฉพาะรอบนี้</small></summary>
               <div class="az-model-grid">
                 <div class="az-model-heading">YOLO · ใช้ร่วมกันทั้ง YOLOv8n และ YOLOv8s</div>
-                <div class="az-model-control"><label for="azThPerson">ความมั่นใจ person</label><input id="azThPerson" type="number" min="0.01" max="0.99" step="0.01" value="0.25"><small>ลดลงพบคนง่ายขึ้น แต่อาจเพิ่มกล่องผิดพลาด</small></div>
-                <div class="az-model-control"><label for="azThHelmet">ความมั่นใจ helmet</label><input id="azThHelmet" type="number" min="0.01" max="0.99" step="0.01" value="0.20"></div>
-                <div class="az-model-control"><label for="azThVest">ความมั่นใจ vest</label><input id="azThVest" type="number" min="0.01" max="0.99" step="0.01" value="0.20"></div>
-                <div class="az-model-control"><label for="azThFall">ความมั่นใจ fall</label><input id="azThFall" type="number" min="0.01" max="0.99" step="0.01" value="0.20"></div>
-                <div class="az-model-control"><label for="azThFire">ความมั่นใจ fire</label><input id="azThFire" type="number" min="0.01" max="0.99" step="0.01" value="0.20"></div>
-                <div class="az-model-control"><label for="azThSmoke">ความมั่นใจ smoke</label><input id="azThSmoke" type="number" min="0.01" max="0.99" step="0.01" value="0.20"></div>
+                <div class="az-model-control"><label for="azThPerson">ความมั่นใจ: บุคคล</label><input id="azThPerson" type="number" min="0.01" max="0.99" step="0.01" value="0.25"><small>ลดลงจะตรวจพบบุคคลง่ายขึ้น แต่อาจพบกรอบที่ไม่ใช่บุคคล</small></div>
+                <div class="az-model-control"><label for="azThHelmet">ความมั่นใจ: หมวกนิรภัย</label><input id="azThHelmet" type="number" min="0.01" max="0.99" step="0.01" value="0.20"></div>
+                <div class="az-model-control"><label for="azThVest">ความมั่นใจ: เสื้อสะท้อนแสง</label><input id="azThVest" type="number" min="0.01" max="0.99" step="0.01" value="0.20"></div>
+                <div class="az-model-control"><label for="azThFall">ความมั่นใจ: คนล้ม</label><input id="azThFall" type="number" min="0.01" max="0.99" step="0.01" value="0.20"></div>
+                <div class="az-model-control"><label for="azThFire">ความมั่นใจ: ไฟ</label><input id="azThFire" type="number" min="0.01" max="0.99" step="0.01" value="0.20"></div>
+                <div class="az-model-control"><label for="azThSmoke">ความมั่นใจ: ควัน</label><input id="azThSmoke" type="number" min="0.01" max="0.99" step="0.01" value="0.20"></div>
                 <div class="az-model-control"><label for="azYoloIou">NMS IoU</label><input id="azYoloIou" type="number" min="0.1" max="0.95" step="0.05" value="0.70"><small>ต่ำลงจะตัดกล่องซ้อนทับซ้ำมากขึ้น</small></div>
                 <div class="az-model-control"><label for="azYoloImg">ขนาดภาพเข้าโมเดล</label><select id="azYoloImg"><option>320</option><option>480</option><option selected>640</option><option>800</option><option>960</option><option>1280</option></select><small>ใหญ่ขึ้นอาจช่วยวัตถุเล็ก แต่ช้าลงและใช้หน่วยความจำเพิ่ม</small></div>
                 <div class="az-model-control"><label for="azYoloMaxDet">กล่องสูงสุดต่อเฟรม</label><input id="azYoloMaxDet" type="number" min="1" max="1000" step="10" value="300"></div>
-                <div class="az-model-heading">X3D-S · Fight / Non-Fight</div>
-                <div class="az-model-control"><label for="azX3dThreshold">เกณฑ์ความน่าจะเป็น Fight</label><input id="azX3dThreshold" type="number" min="0.05" max="0.95" step="0.05" value="0.50"><small>เพิ่มแล้วแจ้ง Fight ยากขึ้น แต่อาจพลาดเหตุจริง · หน้าต่าง 2 วินาที / 13 เฟรมเป็นข้อกำหนดโมเดล</small></div>
-                <div class="az-model-heading">Tracking และ Trigger · ค่าทดลองใน shadow mode</div>
+                <div class="az-model-heading">X3D-S · ประเมินสัญญาณการทะเลาะ</div>
+                <div class="az-model-control"><label for="azX3dThreshold">เกณฑ์คะแนนการทะเลาะ</label><input id="azX3dThreshold" type="number" min="0.05" max="0.95" step="0.05" value="0.50"><small>ตั้งเกณฑ์สูงขึ้นแล้วระบบจะแจ้งเตือนยากขึ้น แต่อาจพลาดเหตุจริง · ประเมินครั้งละ 2 วินาที / 13 เฟรมตามข้อกำหนดโมเดล</small></div>
+                <div class="az-model-heading">ติดตามตำแหน่งคนและเงื่อนไขเริ่มประเมิน · ทดลอง</div>
                 <div class="az-model-control"><label for="azTrackProximity">ระยะใกล้ (สัดส่วนแนวทแยงภาพ)</label><input id="azTrackProximity" type="number" min="0.01" max="0.50" step="0.01" value="0.16"><small>เพิ่มแล้วคนที่อยู่ห่างกันมากขึ้นก็เข้าเกณฑ์ใกล้กัน</small></div>
                 <div class="az-model-control"><label for="azTrackMotion">ความเร็วขั้นต่ำ (แนวทแยง/วินาที)</label><input id="azTrackMotion" type="number" min="0.01" max="2" step="0.05" value="0.25"><small>ลดลงแล้ว trigger จากการเคลื่อนไหวได้ง่ายขึ้น</small></div>
                 <div class="az-model-control"><label for="azTrackGap">ช่วงขาดหายสูงสุดของ track (วินาที)</label><input id="azTrackGap" type="number" min="0.1" max="3" step="0.05" value="0.75"><small>เพิ่มแล้วเชื่อม track ข้ามเฟรมที่ตรวจไม่พบได้นานขึ้น</small></div>
@@ -1072,14 +1072,14 @@ body[data-mode="demo"] .db-controls{flex-wrap:wrap}
 
       <div class="card az-stage s1">
         <div class="card-h">
-          <span class="az-stage-no">STAGE 1</span>
-          <h3>Stage 1 — YOLOv8 (spatial detection)</h3>
-          <span class="az-real" id="azS1Badge" hidden>ผลจากโมเดลจริง — pilot</span>
+          <span class="az-stage-no">ขั้นที่ 1</span>
+          <h3>ตรวจจับวัตถุในภาพด้วย YOLOv8</h3>
+          <span class="az-real" id="azS1Badge" hidden>ผลจากโมเดลจริง · รุ่นทดลอง</span>
           <span class="hint">คน · หมวกนิรภัย · เสื้อสะท้อนแสง · คนล้ม · ไฟ · ควัน</span>
           <span class="az-stage-empty">ผลจะปรากฏหลังวิเคราะห์</span>
         </div>
         <div class="az-stage-b">
-          <div class="az-state az-state-info" id="azS1State">เลือกไฟล์แล้วกด Analyze เพื่อเริ่มวิเคราะห์</div>
+          <div class="az-state az-state-info" id="azS1State">เลือกไฟล์แล้วกด “วิเคราะห์ไฟล์” เพื่อเริ่ม</div>
           <div id="azS1Body" hidden>
             <div class="az-sentence" id="azS1Sentence"></div>
             <div class="az-state az-state-warn" id="azS1Notice" hidden></div>
@@ -1119,7 +1119,7 @@ body[data-mode="demo"] .db-controls{flex-wrap:wrap}
                   <button type="button" class="btn" id="azNext">ถัดไป ›</button>
                   <span class="az-seektime mono" id="azSeekTime"></span>
                 </div>
-                <div class="az-seeklegend" id="azSeekLegend" hidden><i></i>ช่วงที่ Stage 2 พบการทะเลาะ</div>
+                <div class="az-seeklegend" id="azSeekLegend" hidden><i></i>ช่วงที่ระบบประเมินว่าอาจมีการทะเลาะ</div>
               </div>
               <div class="az-now">
                 <div class="az-sub" id="azNowTitle">ผลตรวจ ณ เวลานี้</div>
@@ -1130,7 +1130,7 @@ body[data-mode="demo"] .db-controls{flex-wrap:wrap}
             <details class="az-tech">
               <summary>รายละเอียดทางเทคนิค</summary>
               <div class="az-meta" id="azS1Meta"></div>
-              <p class="az-rule" id="azS1Rule" hidden>วิธีสรุปวิดีโอ (ไม่มีการติดตามตัวบุคคล): จำนวนกล่อง person = จำนวนกล่องสูงสุดในเฟรมที่ตรวจ ไม่ใช่จำนวนคนที่ยืนยันแล้ว กล่องซ้ำอาจทำให้ค่าสูงเกินจริง · PPE เป็นผลคำนวณจากกล่องตรวจจับ · สัญญาณ Fall/ไฟ/ควันเป็นผลจากโมเดลและควรตรวจทาน</p>
+              <p class="az-rule" id="azS1Rule" hidden>สรุปจากจำนวนกรอบตรวจจับสูงสุดในเฟรม ไม่ใช่จำนวนบุคคลที่ยืนยันแล้ว และกรอบซ้ำอาจทำให้จำนวนสูงกว่าความเป็นจริง · ผล PPE คำนวณจากกรอบตรวจจับ · สัญญาณคนล้ม ไฟ และควันมาจากโมเดล โปรดตรวจสอบก่อนสรุปผล</p>
               <div class="az-sub" style="margin-top:12px">จำนวน detection ต่อ class (ทุกเฟรมที่ตรวจ) และ threshold ที่ API ใช้</div>
               <div class="az-counts" id="azS1Counts"></div>
             </details>
@@ -1141,14 +1141,14 @@ body[data-mode="demo"] .db-controls{flex-wrap:wrap}
 
       <div class="card az-stage s2">
         <div class="card-h">
-          <span class="az-stage-no">STAGE 2</span>
-          <h3>Stage 2 — X3D-S (Fight / Non-Fight)</h3>
-          <span class="az-real" id="azS2Badge" hidden>ผลจากโมเดลจริง — pilot</span>
+          <span class="az-stage-no">ขั้นที่ 2</span>
+          <h3>ประเมินสัญญาณการทะเลาะด้วย X3D-S</h3>
+          <span class="az-real" id="azS2Badge" hidden>ผลจากโมเดลจริง · รุ่นทดลอง</span>
           <span class="hint">ใช้กับวิดีโอเท่านั้น</span>
           <span class="az-stage-empty">ผลจะปรากฏหลังวิเคราะห์วิดีโอ</span>
         </div>
         <div class="az-stage-b">
-          <div class="az-state az-state-info" id="azS2State">Stage 2 ต้องใช้ไฟล์วิดีโอ — จะเรียกเฉพาะเมื่ออัปโหลดวิดีโอ</div>
+          <div class="az-state az-state-info" id="azS2State">การประเมินการทะเลาะใช้ได้กับวิดีโอ ระบบจะข้ามส่วนนี้เมื่อเลือกภาพนิ่ง</div>
           <div id="azS2Body" hidden>
             <div class="az-sentence" id="azS2Sentence"></div>
             <details class="az-tech">
@@ -1166,16 +1166,16 @@ body[data-mode="demo"] .db-controls{flex-wrap:wrap}
 </div>
 
 <section id="ntPanel" class="nt-panel card" hidden aria-labelledby="ntTitle">
-  <div class="card-h"><h2 id="ntTitle">ประวัติแจ้งเหตุสงสัยทั้งหมด</h2><button class="btn" id="ntClose" type="button" aria-label="ปิดแผงแจ้งเตือน">ปิด</button></div>
-  <p class="nt-caption">เหตุสงสัยจากโมเดล ต้องให้ผู้ใช้ตรวจสอบ ไม่ใช่การยืนยันเหตุ</p>
+  <div class="card-h"><h2 id="ntTitle">ประวัติการแจ้งเตือน</h2><button class="btn" id="ntClose" type="button" aria-label="ปิดแผงแจ้งเตือน">ปิด</button></div>
+  <p class="nt-caption">การแจ้งเตือนเป็นผลที่ระบบสงสัย โปรดตรวจสอบก่อนสรุปว่าเกิดเหตุจริง</p>
   <p id="ntMessage" class="nt-caption" role="status" aria-live="polite">กำลังอ่านการแจ้งเตือน…</p>
-  <p id="ntRule" class="nt-caption">ใช้เงื่อนไขเหตุสงสัยจาก backend</p>
-  <button class="btn" id="ntRefresh" type="button">รีเฟรชรายการแจ้ง</button>
+  <p id="ntRule" class="nt-caption">ระบบจะเว้นช่วงก่อนแจ้งผลเดิมซ้ำ</p>
+  <button class="btn" id="ntRefresh" type="button">อัปเดตรายการ</button>
   <div id="ntList" class="nt-list"></div>
 </section>
 <aside id="ntToast" class="nt-toast card" hidden aria-label="การแจ้งเหตุสงสัยใหม่">
   <p id="ntToastText" role="status" aria-live="polite" aria-atomic="true"></p>
-  <div><button class="btn primary" id="ntToastOpen" type="button">เปิด Logs รายการนี้</button><button class="btn" id="ntToastClose" type="button" aria-label="ซ่อนข้อความแจ้งเหตุสงสัย">ซ่อน</button></div>
+  <div><button class="btn primary" id="ntToastOpen" type="button">ดูผลตรวจจับนี้</button><button class="btn" id="ntToastClose" type="button" aria-label="ซ่อนข้อความแจ้งเตือน">ซ่อน</button></div>
 </aside>
 
 <div class="mask" id="rlMask" role="dialog" aria-modal="true" aria-labelledby="rlTitle">
@@ -1204,8 +1204,8 @@ body[data-mode="demo"] .db-controls{flex-wrap:wrap}
     <div class="meta" id="mMeta"></div>
     <div class="modal-f">
       <button class="btn primary">รับทราบเหตุการณ์</button>
-      <button class="btn">ส่งต่อเจ้าหน้าที่</button>
-      <button class="btn">ดาวน์โหลดคลิป 30 วิ</button>
+      <button class="btn">ส่งต่อให้ผู้รับผิดชอบ</button>
+      <button class="btn">ดาวน์โหลดวิดีโอ 30 วินาที</button>
       <div class="spacer"></div>
       <button class="btn" id="mClose2">ปิด</button>
     </div>
@@ -1270,11 +1270,11 @@ const fmtD  = d => pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+String(d.getFull
 
 /* ============ NAVIGATION ============ */
 const PAGES = {
-  dashboard:['ภาพรวมผลวิเคราะห์','สรุปประวัติจริงและสถานะ Live pilot'],
-  settings:['ตั้งค่าการวิเคราะห์','บันทึกค่าเริ่มต้นสำหรับคำขอและเซสชันถัดไป'],
-  live:     ['Live CCTV Monitoring','Live pilot · วิเคราะห์แหล่งภาพหนึ่งรายการด้วยโมเดลจริง'],
-  logs:     ['ประวัติผลตรวจจับ','ผลจากโมเดลจริง · รอตรวจสอบโดยผู้ใช้'],
-  analyze:  ['Upload & Analyze','วิเคราะห์ภาพ/วิดีโอด้วยโมเดลจริงผ่าน API (ต้นแบบ pilot)']
+  dashboard:['ภาพรวมผลตรวจจับ','สรุปผลที่บันทึกและสถานะการเฝ้าระวัง'],
+  settings:['ตั้งค่าการวิเคราะห์','ค่าที่ใช้กับการวิเคราะห์ครั้งถัดไป'],
+  live:     ['เฝ้าระวังสด','วิเคราะห์ภาพจากแหล่งที่เลือกด้วยโมเดลของระบบ'],
+  logs:     ['แจ้งเตือนและประวัติ','ตรวจสอบผลที่บันทึกและจัดการสถานะรายการ'],
+  analyze:  ['วิเคราะห์ภาพและวิดีโอ','เลือกไฟล์เพื่อประเมินด้วยระบบวิเคราะห์']
 };
 document.querySelectorAll('[data-go]').forEach(b=>{
   b.addEventListener('click',()=>go(b.dataset.go));
@@ -1496,14 +1496,14 @@ navLogs.textContent = '—';
 navLive.textContent = SCENES.filter(s=>s.boxes.length).length;
 </script>
 <!-- Upload & Analyze: real API calls (no mock data) -->
-<script src="demo-provider.js?v=20261015-aegivis-demo"></script>
-<script src="demo-mode.js?v=20261015-aegivis-demo"></script>
-<script src="dashboard.js?v=20261015-aegivis-demo"></script>
-<script src="logs.js?v=20261015-aegivis-demo"></script>
-<script src="notifications.js?v=20261015-aegivis-demo"></script>
-<script src="settings.js?v=20261015-aegivis-demo"></script>
-<script src="analyze.js?v=20261015-aegivis-demo"></script>
-<script src="live.js?v=20261015-aegivis-demo"></script>
-<script src="live-flow.js?v=20261015-aegivis-demo"></script>
+<script src="demo-provider.js?v=20261015-thai-copy"></script>
+<script src="demo-mode.js?v=20261015-thai-copy"></script>
+<script src="dashboard.js?v=20261015-thai-copy"></script>
+<script src="logs.js?v=20261015-thai-copy"></script>
+<script src="notifications.js?v=20261015-thai-copy"></script>
+<script src="settings.js?v=20261015-thai-copy"></script>
+<script src="analyze.js?v=20261015-thai-copy"></script>
+<script src="live.js?v=20261015-thai-copy"></script>
+<script src="live-flow.js?v=20261015-thai-copy"></script>
 </body>
 </html>

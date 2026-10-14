@@ -13,11 +13,11 @@
   scenario.value='ppe-missing';
   const buttons={};for(const [key,label] of [['pause','พักสถานการณ์'],['next','เหตุการณ์ถัดไป'],['reset','เริ่มสาธิตใหม่']]){const button=document.createElement('button');button.id='demo-'+key;button.type='button';button.className='btn';button.textContent=label;buttons[key]=button;}
   const elapsed=document.createElement('span');elapsed.id='demoElapsed';elapsed.setAttribute('role','status');
-  const guide=document.createElement('p');guide.id='demoGuide';guide.textContent='เรื่องหลัก: PPE ไม่ครบ · ฉากโรงงานสมมติ · คะแนนกำหนดไว้ ไม่ได้ inference ใหม่ · Live → แจ้งเตือน → Logs → Dashboard';
+  const guide=document.createElement('p');guide.id='demoGuide';guide.textContent='สถานการณ์หลัก: PPE ไม่ครบ · ใช้ฉากวาดและคะแนนตัวอย่าง · ไม่ได้ประมวลผลโมเดลจริง · เฝ้าระวัง → แจ้งเตือน → ประวัติ → ภาพรวม';
   toolbar.append(scenario,...Object.values(buttons),elapsed,guide);banner.after(toolbar);
   const toast=document.getElementById('ntToast');if(toast)toolbar.after(toast);
   const texts=new Map(),realChoices=new Map();
-  const copy={dbTitle:'ภาพรวมผลวิเคราะห์สาธิต',dbUpdated:'ข้อมูลสาธิตในหน่วยความจำ',stTitle:'ค่าตั้งต้นการวิเคราะห์สาธิต',livePilotTitle:'สาธิตแหล่งภาพหนึ่งรายการ',liveRuntimeStatus:'โหมดสาธิต · ไม่ได้รันโมเดลหรือเปิดกล้อง',liveSourceHelp:'ใช้สถานการณ์ที่เลือกบนแถบสาธิต · ไม่มีการอัปโหลดไฟล์ส่วนตัว',azUseSavedSettingsLabel:'ใช้ค่าที่บันทึกจากโหมดสาธิต'};
+  const copy={dbTitle:'ภาพรวมผลตรวจจับสาธิต',dbUpdated:'ข้อมูลสาธิตล่าสุด',stTitle:'ตั้งค่าการวิเคราะห์ (โหมดสาธิต)',livePilotTitle:'ทดลองสถานการณ์สาธิต',liveRuntimeStatus:'โหมดสาธิต · ไม่ได้เปิดกล้องหรือประมวลผลโมเดล',liveSourceHelp:'ใช้สถานการณ์ที่เลือก · ไม่มีการอัปโหลดไฟล์',azUseSavedSettingsLabel:'ใช้ค่าที่บันทึกสำหรับโหมดสาธิต'};
   function contextualCopy(){
     for(const id of ['azDevice','liveDevice','azModel','liveModel']){
       const input=$(id);if(!input)continue;
@@ -32,7 +32,7 @@
   }
   function sync(){
     toggle.disabled=switching||writes>0||locks.size>0;toggle.textContent=active?'กลับโหมดจริง':'เข้าโหมดสาธิต';toggle.setAttribute('aria-pressed',String(active));toggle.title=toggle.disabled?'รอการวิเคราะห์หรือบันทึกให้จบก่อนสลับโหมด':'';toolbar.hidden=!active;
-    if(active){const status=provider.status();elapsed.textContent=`เวลาสถานการณ์ ${Number(status.elapsed_s||0).toFixed(1)}/90 s · ${document.hidden?'พักเพราะซ่อนแท็บ':status.paused?'พัก':'เล่น'} · ไม่ใช่เวลา inference`;
+    if(active){const status=provider.status();elapsed.textContent=`เวลาสถานการณ์ ${Number(status.elapsed_s||0).toFixed(1)}/90 วินาที · ${document.hidden?'พักเพราะซ่อนแท็บ':status.paused?'พัก':'กำลังเล่น'} · ไม่ใช่เวลาประมวลผล`;
       buttons.pause.textContent=provider.paused?'เล่นต่อ':'พักสถานการณ์';buttons.pause.disabled=buttons.next.disabled=status.status!=='running';buttons.reset.disabled=locks.size>0;scenario.disabled=status.status==='running'||locks.size>0;}
   }
   class RealProvider {
@@ -86,9 +86,9 @@
     if(generation!==epoch)throw new DOMException('Mode changed','AbortError');if(['PUT','PATCH'].includes(options.method))queueMicrotask(notify);
     return new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json'}});
   }
-  function origin(context){return context?.mode==='demo'?'โหมดสาธิต · '+context.note+(context.captured_at?' · รันเดิม '+context.captured_at:context.kind==='captured'?' · ไม่ได้บันทึกเวลารันเดิม':''):'';}
+  function origin(context){return context?.mode==='demo'?'โหมดสาธิต · '+context.note+(context.captured_at?' · เวลาที่บันทึกผลเดิม '+context.captured_at:context.kind==='captured'?' · ไม่มีเวลาบันทึกผลเดิม':''):'';}
   function clearTransient(){for(const id of ['mask','rlMask'])$(id)?.classList.remove('on');$('ntPanel').hidden=true;$('ntToast').hidden=true;$('ntToggle').setAttribute('aria-expanded','false');document.querySelectorAll('#v-analyze video').forEach(v=>v.pause());}
-  function change(){contextualCopy();$('pgSub').textContent=active?'โหมดสาธิต · หน้าจอเดียวกับระบบจริง · ผลบันทึก/สมมติในหน่วยความจำ':'ระบบต้นแบบ · แสดงผลจาก backend';clearTransient();document.dispatchEvent(new CustomEvent('cctv:modechange',{detail:{demo:active}}));sync();}
+  function change(){contextualCopy();$('pgSub').textContent=active?'โหมดสาธิต · ใช้หน้าจอเดียวกับระบบจริง · แสดงข้อมูลตัวอย่างที่ระบุแหล่งที่มา':'ระบบต้นแบบ · แสดงผลจากระบบวิเคราะห์';clearTransient();document.dispatchEvent(new CustomEvent('cctv:modechange',{detail:{demo:active}}));sync();}
   window.CCTVMode={get active(){return active;},get demo(){return provider;},get scenario(){return scenario.value;},fetch:request,RealProvider,origin,id:(kind,id)=>(active?'DEMO-':'')+kind+'-'+id,
     lock(name,value){if(value)locks.add(name);else locks.delete(name);sync();},changed:notify,
     async analyze(overrides){const result=await provider.analyze(scenario.value,overrides);notify();return result;},async startLive(){const status=await provider.start(scenario.value);notify();return status;},
@@ -96,7 +96,7 @@
   };
   buttons.pause.addEventListener('click',()=>{provider.paused=!provider.paused;notify();});buttons.next.addEventListener('click',()=>{provider.next();notify();});
   buttons.reset.addEventListener('click',()=>{if(locks.size)return;++epoch;++loadToken;provider.reset();change();notify();});
-  scenario.addEventListener('change',()=>{guide.textContent='สถานการณ์ที่เลือก: '+scenario.selectedOptions[0].textContent+' · เลือกเริ่ม Live หรือวิเคราะห์ · ไม่ได้ inference ใหม่';});
+  scenario.addEventListener('change',()=>{guide.textContent='สถานการณ์ที่เลือก: '+scenario.selectedOptions[0].textContent+' · กดเริ่มเฝ้าระวังหรือวิเคราะห์ · ใช้ข้อมูลตัวอย่าง ไม่ประมวลผลโมเดลใหม่';});
   toggle.addEventListener('click',async()=>{
     if(switching||writes||locks.size)return;switching=true;sync();
     try{
@@ -105,11 +105,11 @@
         if(!response.ok||!['idle','starting','running','degraded','stopping','stopped','completed','error','interrupted'].includes(data.status))throw Error('ตรวจสถานะ Live ไม่สำเร็จ');
         if(['starting','running','degraded','stopping'].includes(data.status))throw Error('กรุณาหยุด Live จริงให้จบก่อนเข้าโหมดสาธิต');if(writes||locks.size)throw Error('รอการทำงานจริงให้จบก่อน');}
       ++epoch;++loadToken;for(const controller of pending)controller.abort();provider?.stop();active=!active;provider=active?newProvider():null;document.body.dataset.mode=active?'demo':'real';switching=false;
-      banner.textContent=active?'โหมดสาธิต · ข้อมูลอยู่ในหน่วยความจำ · ไม่เขียนฐานข้อมูลจริง':'โหมดจริง · อ่านข้อมูลจาก backend';change();
+      banner.textContent=active?'โหมดสาธิต · ใช้ข้อมูลตัวอย่าง · ไม่บันทึกลงระบบจริง':'โหมดจริง · ใช้ข้อมูลจากระบบวิเคราะห์';change();
     }catch(error){banner.textContent=error.name==='AbortError'?'ตรวจสถานะ Live ไม่ได้ · ลองอีกครั้ง':error.message;}
     finally{switching=false;sync();toggle.focus();}
   });
   // No wall-clock catch-up when hidden; the scenario clock is independent from evidence time.
   setInterval(()=>{if(active&&!document.hidden){const previous=provider.nextIndex;provider.tick(.25);if(previous!==provider.nextIndex)notify();else sync();}},250);document.addEventListener('visibilitychange',sync);
-  document.body.dataset.mode='real';banner.textContent='โหมดจริง · อ่านข้อมูลจาก backend';sync();
+  document.body.dataset.mode='real';banner.textContent='โหมดจริง · ใช้ข้อมูลจากระบบวิเคราะห์';sync();
 }());

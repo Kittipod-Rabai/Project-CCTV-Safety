@@ -16,6 +16,8 @@
   let statusTimer = null;
   let latestFight = null;
   let latestConfidenceMessage = null;
+  const stateLabels = {idle:'ยังไม่เริ่ม', queued:'กำลังรอเริ่ม', starting:'กำลังเริ่ม', running:'กำลังทำงาน', stopped:'หยุดแล้ว', degraded:'ทำงานได้บางส่วน', error:'เกิดข้อผิดพลาด'};
+  const stateLabel = value => stateLabels[value] || value || 'ไม่ทราบสถานะ';
   function report(text) { status.textContent = text; }
   function setControls(active) {
     [sourceType, source, sourceFile, device, $('liveModel')].forEach(input => {
@@ -35,16 +37,16 @@
         const body = await request('/api/live/status');
         if (token !== generation) return;
         if (body.session_id !== id) {
-          report('session เปลี่ยนแล้ว · หยุดแสดงผลรอบเก่า'); finishSession(); return;
+          report('รอบตรวจจับเปลี่ยนแล้ว · หยุดแสดงผลรอบก่อน'); finishSession(); return;
         }
         renderMetrics(body);
         if (['stopped', 'degraded', 'error', 'idle'].includes(body.status)) {
-          report(body.status + (body.reason ? ' · ' + body.reason : '')); finishSession(); return;
+          report(stateLabel(body.status) + (body.reason ? ' · ' + body.reason : '')); finishSession(); return;
         }
-        report('WebSocket หลุด · session ยัง ' + body.status + ' · กดหยุดได้');
+        report('การเชื่อมต่อผลสดขาดหาย · ระบบ' + stateLabel(body.status) + ' · กดหยุดได้');
       } catch (err) {
         if (token !== generation) return;
-        report('อ่านสถานะไม่ได้ · ' + err.message + ' · ตรวจ backend ก่อนเริ่มใหม่');
+        report('อ่านสถานะไม่ได้ · ' + err.message + ' · ตรวจว่าระบบวิเคราะห์กำลังทำงาน');
       }
       if (token === generation) pollStatus(token, id);
     }, 500);
@@ -54,7 +56,7 @@
     return 'YOLO ' + (devices.yolo || '—') + ' · X3D ' + (devices.x3d || '—') + ' · YuNet ' + (devices.yunet || '—');
   }
   function addEvent(text) {
-    const row = document.createElement('div'); row.className = 'feed-item'; row.title = 'Live Event Feed item · ' + text; row.textContent = text;
+    const row = document.createElement('div'); row.className = 'feed-item'; row.title = 'รายการผลตรวจจับ · ' + text; row.textContent = text;
     events.prepend(row); while (events.children.length > 40) events.lastChild.remove();
   }
   function confidenceRow(label, value, count) {
@@ -73,24 +75,24 @@
     if (message) latestConfidenceMessage = message;
     const latest = latestConfidenceMessage;
     const classes = latest?.classes || {};
-    const names = [['person', 'คน'], ['helmet', 'หมวกนิรภัย'], ['vest', 'เสื้อสะท้อนแสง'],
-      ['fall', 'คนล้ม'], ['fire', 'ไฟ'], ['smoke', 'ควัน']];
+    const names = [['person', 'บุคคล'], ['helmet', 'หมวกนิรภัย'], ['vest', 'เสื้อสะท้อนแสง'],
+      ['fall', 'สงสัยคนล้ม'], ['fire', 'ไฟ'], ['smoke', 'ควัน']];
     confidenceList.replaceChildren();
     for (const [key, label] of names) {
       const item = classes[key];
       confidenceList.append(confidenceRow(label, item ? item.max_confidence : null, item ? item.count : 0));
     }
-    confidenceList.append(confidenceRow('Fight · X3D', latestFight, null));
+    confidenceList.append(confidenceRow('สงสัยการทะเลาะ (X3D)', latestFight, null));
     if (confidenceMeta && latest) {
-      confidenceMeta.textContent = (latest.model || 'YOLO') + ' · ' + (latest.context ? 'เวลาเดโม '+Number(latest.demo_time_s||0).toFixed(2) : Number(latest.time_s||0).toFixed(2)) + ' s · ' + (latest.detection_count || 0) + ' กล่อง';
+      confidenceMeta.textContent = 'รุ่นโมเดล '+(latest.model || 'YOLO') + ' · วินาทีที่ ' + (latest.context ? Number(latest.demo_time_s||0).toFixed(2) : Number(latest.time_s||0).toFixed(2)) + ' · พบ ' + (latest.detection_count || 0) + ' กรอบ';
     } else if (confidenceMeta) {
       const demoRunning=window.CCTVMode.active&&window.CCTVMode.demo?.status().status==='running';
-      confidenceMeta.textContent=demoRunning?'รอเหตุการณ์สาธิตแรก · วินาที 10 · ไม่ได้ inference ใหม่':window.CCTVMode.active?'เลือกสถานการณ์แล้วกดเริ่ม Live':'รอผลจากโมเดลจริง';
+      confidenceMeta.textContent=demoRunning?'รอผลสาธิตแรก · วินาทีที่ 10 · ใช้คะแนนตัวอย่างที่เตรียมไว้':window.CCTVMode.active?'เลือกสถานการณ์แล้วกดเริ่มเฝ้าระวัง':'รอผลจากโมเดลจริง';
     }
   }
   function renderMetrics(message) {
     if (!metrics) return;
-    if(message.context){metrics.textContent=window.CCTVMode.origin(message.context)+' · FPS/latency ไม่ได้วัด · อุปกรณ์จากรอบที่บันทึก: '+(message.device_used||'ไม่ได้วัด');return;}
+    if(message.context){metrics.textContent=window.CCTVMode.origin(message.context)+' · ความเร็วและเวลาประมวลผลไม่ได้วัด · อุปกรณ์จากผลที่บันทึก: '+(message.device_used||'ไม่ได้วัด');return;}
     const timings = message.timings_ms || {};
     const value = key => timings[key] ? `${Number(timings[key].mean_ms).toFixed(1)} ms` : '—';
     const fps = Number(message.processing_fps || 0).toFixed(1);
@@ -100,7 +102,7 @@
   async function request(path, method) {
     const r = await window.CCTVMode.fetch(path, { method: method || 'GET', headers: {'Content-Type': 'application/json'} });
     const body = await r.json();
-    if (!r.ok) throw new Error(body.error?.message || 'Live API error');
+    if (!r.ok) throw new Error(body.error?.message || 'ระบบเฝ้าระวังสดตอบกลับผิดพลาด');
     return body;
   }
   function handleMessage(msg,token,connection) {
@@ -113,18 +115,18 @@
           preview.src = 'data:image/jpeg;base64,' + msg.jpeg_b64; preview.hidden = false;
         } else if (msg.type === 'confidence') {
           renderConfidence(msg);
-          if(msg.context)addEvent('โหมดสาธิต · เวลา '+msg.demo_time_s+' s · '+Object.entries(msg.classes).map(([name,value])=>name+'='+Number(value.max_confidence).toFixed(4)).join(' · ')+' · อัปเดตรายการเดิมตามรอบ');
-        } else if (msg.type === 'candidate') addEvent('Candidate เบื้องต้น · ' + msg.time_s + 's · latency ' + msg.processing_latency_ms + 'ms · ' + msg.trigger_reasons.join(', '));
+          if(msg.context){const classLabels={person:'บุคคล',helmet:'หมวกนิรภัย',vest:'เสื้อสะท้อนแสง',fall:'คนล้ม',fire:'ไฟ',smoke:'ควัน'};addEvent('โหมดสาธิต · วินาทีที่ '+msg.demo_time_s+' · '+Object.entries(msg.classes).map(([name,value])=>(classLabels[name]||name)+' '+Number(value.max_confidence).toFixed(4)).join(' · ')+' · รวมผลซ้ำในรายการเดิม');}
+        } else if (msg.type === 'candidate') addEvent('พบเงื่อนไขสำหรับประเมินต่อ · วินาทีที่ ' + msg.time_s + ' · ใช้เวลา ' + msg.processing_latency_ms + ' มิลลิวินาที');
         else if (msg.type === 'x3d') {
           latestFight = msg.fight;
           renderConfidence(null);
-          addEvent('X3D ' + msg.label + ' · fight=' + msg.fight + ' · ' + msg.start_s + '–' + msg.end_s + 's');
+          addEvent((msg.label === 'fight' ? 'สงสัยการทะเลาะ' : 'ไม่พบสัญญาณทะเลาะ') + ' · คะแนน ' + Number(msg.fight).toFixed(2) + ' · วินาทีที่ ' + msg.start_s + '–' + msg.end_s);
         }
         else if (msg.type === 'health') {
-          const replayHint = msg.playback_mode === 'processing_paced' ? ' · replay ปรับความเร็วตามเครื่อง · ไม่ทิ้งเฟรม' : '';
+          const replayHint = msg.playback_mode === 'processing_paced' ? ' · ปรับความเร็วคลิปตามกำลังเครื่อง · ไม่ข้ามเฟรม' : '';
           const devices = msg.device_components ? ' · ' + deviceSummary(msg.device_components) : '';
           renderMetrics(msg);
-          report(msg.context ? 'โหมดสาธิต · '+msg.state+' · '+Number(msg.elapsed_s||0).toFixed(1)+' s · ไม่ได้สแกนเฟรมจริง' : msg.state + (msg.reason ? ' · ' + msg.reason : '') + devices + replayHint + ' · scanned ' + msg.frames_face_scanned + '/' + msg.frames_received);
+          report(msg.context ? 'โหมดสาธิต · '+stateLabel(msg.state)+' · '+Number(msg.elapsed_s||0).toFixed(1)+' วินาที · ไม่ได้ประมวลผลเฟรมจริง' : stateLabel(msg.state) + (msg.reason ? ' · ' + msg.reason : '') + devices + replayHint + ' · ตรวจใบหน้าแล้ว ' + msg.frames_face_scanned + '/' + msg.frames_received+' เฟรม');
           if (['stopped','degraded','error'].includes(msg.state)) finishSession();
         }
 
@@ -135,7 +137,7 @@
     if (sourcePathField) sourcePathField.hidden = isFile;
     source.placeholder = isFile ? 'data/raw/clip.mp4' : 'rtsp://กล้องในเครือข่ายของคุณ/stream';
     if (sourceHelp) sourceHelp.textContent = isFile
-      ? 'เลือกคลิปจากเครื่องเพื่อ replay ทดสอบ · ระบบจะอัปโหลดเป็นไฟล์ชั่วคราวและลบเมื่อจบ session (สูงสุด 100 MB)'
+      ? 'เลือกคลิปจากเครื่องเพื่อทดสอบ ระบบจะส่งไฟล์ชั่วคราวและลบเมื่อจบการทำงาน (ขนาดไม่เกิน 100 MB)'
       : 'ใส่ RTSP URL ของกล้องที่เครื่องนี้เข้าถึงได้ · อย่าแชร์ URL เพราะอาจมีข้อมูลเข้าสู่ระบบ';
   }
   if (sourceFile) sourceFile.addEventListener('change', () => {
@@ -152,8 +154,8 @@
         const body=await window.CCTVMode.startLive();if(token!==generation)return;activeSession=body.session_id;
         let unsubscribe;const connection={close:()=>unsubscribe?.()};socket=connection;
         unsubscribe=window.CCTVMode.subscribeLive(msg=>handleMessage(msg,token,connection));
-        setControls(true);stop.disabled=false;renderMetrics(body);renderConfidence(null);addEvent('เริ่มรอบสาธิต '+body.session_id+' · snapshot revision '+body.settings_revision);report('โหมดสาธิต · เริ่มแล้ว · ผลแรกวินาที 10 หรือกดเหตุการณ์ถัดไป');
-        $('liveDemoContext').hidden=false;$('liveDemoContext').textContent=window.CCTVMode.origin(body.context)+' · snapshot revision '+body.settings_revision;
+        setControls(true);stop.disabled=false;renderMetrics(body);renderConfidence(null);addEvent('เริ่มสถานการณ์สาธิต · ใช้ชุดค่าตั้งเวอร์ชัน '+body.settings_revision);report('เริ่มสถานการณ์สาธิตแล้ว · ผลแรกจะแสดงที่วินาที 10 หรือกด “เหตุการณ์ถัดไป”');
+        $('liveDemoContext').hidden=false;$('liveDemoContext').textContent=window.CCTVMode.origin(body.context)+' · ใช้ชุดค่าตั้งเวอร์ชัน '+body.settings_revision;
       }catch(error){report(error.message);finishSession();}
       finally{window.CCTVMode.lock('live-start',false);}
       return;
@@ -182,8 +184,8 @@
     events.replaceChildren(); preview.hidden = true; preview.removeAttribute('src');
     latestFight = null; latestConfidenceMessage = null;
     if (confidenceList) confidenceList.replaceChildren();
-    if (confidenceMeta) confidenceMeta.textContent = 'กำลังเริ่ม session ใหม่';
-    if (metrics) metrics.textContent = 'กำลังเริ่ม session ใหม่…';
+    if (confidenceMeta) confidenceMeta.textContent = 'กำลังเริ่มรอบตรวจจับใหม่';
+    if (metrics) metrics.textContent = 'กำลังเริ่มรอบตรวจจับใหม่…';
     try {
       let result;
       if (isFile) {
@@ -200,20 +202,20 @@
       const body = await result.json();
       if (token !== generation) return;
       if (!result.ok) throw new Error(body.error?.message || 'เริ่ม Live ไม่สำเร็จ');
-      if (typeof body.session_id !== 'string') throw new Error('API ไม่ส่ง session_id · รีสตาร์ต backend');
+      if (typeof body.session_id !== 'string') throw new Error('ระบบไม่ส่งรหัสรอบตรวจจับ · โปรดเริ่มระบบใหม่');
       activeSession = body.session_id;
-      addEvent('ใช้ค่าตั้งอ้างอิง revision '+body.settings_revision+' จาก backend');
+      addEvent('ใช้ชุดค่าตั้งเวอร์ชัน '+body.settings_revision);
       stop.disabled = false;
       report(sourceType.value === 'file'
         ? 'กำลังเล่นคลิปต่อเนื่อง · หากเครื่องช้าจะเล่นช้าลงเพื่อไม่ทิ้งเฟรม · ' + deviceSummary(body.device_components, body.device_used)
         : 'กำลังทำงาน · ' + deviceSummary(body.device_components, body.device_used));
       latestFight = null;
       latestConfidenceMessage = null;
-      if (metrics) metrics.textContent = 'กำลังเก็บเวลาประมวลผลรายขั้น…';
+      if (metrics) metrics.textContent = 'กำลังวัดเวลาประมวลผลในแต่ละขั้น…';
       if (confidenceList) {
         const waiting = document.createElement('div');
         waiting.className = 'live-confidence-empty';
-        waiting.textContent = 'กำลังรอผลจากโมเดลจริง…';
+        waiting.textContent = 'กำลังรอผลตรวจจับ…';
         confidenceList.replaceChildren(waiting);
       }
       if (confidenceMeta) confidenceMeta.textContent = 'กำลังวิเคราะห์';
@@ -248,7 +250,7 @@
     preview.alt=window.CCTVMode.active
       ? 'ภาพวาดสถานการณ์สาธิต · ไม่ได้รัน YuNet หรือยืนยันการเบลอใบหน้า'
       : 'Live preview ที่ผ่านการเบลอใบหน้า';
-    $('liveDemoContext').hidden=true;report(window.CCTVMode.active?'พร้อมเริ่มสถานการณ์สาธิต':'ยังไม่เริ่ม session');
+    $('liveDemoContext').hidden=true;report(window.CCTVMode.active?'พร้อมเริ่มสถานการณ์สาธิต':'ยังไม่เริ่มตรวจจับ');
   });
   window.addEventListener('beforeunload', () => {
     clearTimeout(statusTimer);

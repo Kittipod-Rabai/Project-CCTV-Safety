@@ -2,12 +2,12 @@
 (function () {
   'use strict';
   const $ = id => document.getElementById(id);
-  const types = {person:'คน', helmet:'หมวกนิรภัย', vest:'เสื้อกั๊ก', fall:'สัญญาณ Fall',
-    fire:'สัญญาณไฟ', smoke:'สัญญาณควัน', no_helmet:'ไม่พบหมวก (กฎ PPE)', no_vest:'ไม่พบเสื้อกั๊ก (กฎ PPE)',
-    fight:'X3D: สงสัย Fight', non_fight:'X3D: Non-fight', review_fall_fight_conflict:'Fall/Fight กำกวม'};
+  const types = {person:'บุคคล', helmet:'หมวกนิรภัย', vest:'เสื้อสะท้อนแสง', fall:'สงสัยว่ามีคนล้ม',
+    fire:'ตรวจพบไฟ', smoke:'ตรวจพบควัน', no_helmet:'ไม่พบหมวกนิรภัย (กฎ PPE)', no_vest:'ไม่พบเสื้อสะท้อนแสง (กฎ PPE)',
+    fight:'สงสัยการทะเลาะ (X3D)', non_fight:'ไม่พบสัญญาณทะเลาะ (X3D)', review_fall_fight_conflict:'ผลการล้มและการทะเลาะยังไม่ชัดเจน'};
   const review = {new:'รอตรวจสอบ', ack:'รับทราบแล้ว', closed:'ปิดรายการ'};
-  const states = {idle:'ยังไม่มีเซสชัน', starting:'กำลังเริ่ม', running:'กำลังประมวลผล', stopping:'กำลังหยุด',
-    stopped:'จบแล้ว', error:'ผิดพลาด', degraded:'ประมวลผลไม่ทัน', interrupted:'ถูกขัดจังหวะ', completed:'สำเร็จ'};
+  const states = {idle:'ยังไม่เริ่มตรวจจับ', starting:'กำลังเริ่มตรวจจับ', running:'กำลังตรวจจับ', stopping:'กำลังหยุดตรวจจับ',
+    stopped:'หยุดแล้ว', error:'เกิดข้อผิดพลาด', degraded:'ระบบประมวลผลไม่ทันบางส่วน', interrupted:'หยุดชั่วคราว', completed:'เสร็จแล้ว'};
   const fmt = value => new Date(value).toLocaleString('th-TH', {timeZone:'Asia/Bangkok'});
   const node = (tag, text, cls) => {
     const el = document.createElement(tag); el.textContent = text;
@@ -57,29 +57,29 @@
         node('small',fmt(item.recorded_at) + ' · ' + review[item.status] + ' · ' + (states[item.run_state] || item.run_state)));
       $('dbLatest').append(row);
     }
-    if (!data.total) $('dbLatest').append(node('p','ไม่มีรายการผลโมเดลในช่วงที่เลือก', 'db-empty'));
+    if (!data.total) $('dbLatest').append(node('p','ไม่มีผลตรวจจับในช่วงที่เลือก', 'db-empty'));
     $('navLogs').textContent = String(data.pending_total);
-    $('dbMessage').textContent = data.total ? (window.CCTVMode.active ? 'ภาพรวมสาธิตในหน่วยความจำ · จำนวนรายการไม่ใช่เหตุที่ยืนยัน' : 'อ่านภาพรวมจากฐานข้อมูลแล้ว · จำนวนรายการไม่ใช่จำนวนเหตุที่ยืนยัน') :
-      data.run_count ? 'มีรอบวิเคราะห์ในช่วงนี้ แต่ยังไม่มีรายการผลโมเดลที่บันทึก' : 'ยังไม่มีข้อมูลในช่วงที่เลือก · เริ่มวิเคราะห์ไฟล์หรือ Live replay เพื่อสร้างประวัติ';
-    $('dbUpdated').textContent = (window.CCTVMode.active ? 'ข้อมูลสาธิต ณ ' : 'ข้อมูลประวัติ ณ ') + fmt(data.generated_at) +
-      ' (Asia/Bangkok) · สถานะรอบที่เริ่มในช่วงนี้: ' +
-      (Object.entries(data.run_states).map(([s,n]) => (states[s] || s) + ' ' + n).join(', ') || 'ไม่มีรอบวิเคราะห์');
+    $('dbMessage').textContent = data.total ? (window.CCTVMode.active ? 'แสดงผลจากข้อมูลสาธิต · ผลตรวจจับยังไม่ใช่การยืนยันว่าเกิดเหตุ' : 'แสดงผลจากประวัติที่บันทึกไว้ · โปรดตรวจสอบก่อนยืนยันเหตุ') :
+      data.run_count ? 'มีรอบวิเคราะห์ในช่วงนี้ แต่ยังไม่มีผลตรวจจับที่บันทึกไว้' : 'ยังไม่มีข้อมูลในช่วงที่เลือก · วิเคราะห์ภาพหรือวิดีโอเพื่อเริ่มบันทึกผล';
+    $('dbUpdated').textContent = (window.CCTVMode.active ? 'อัปเดตข้อมูลสาธิตล่าสุด: ' : 'อัปเดตประวัติล่าสุด: ') + fmt(data.generated_at) +
+      ' (เวลาไทย) · สถานะรอบวิเคราะห์: ' +
+      (Object.entries(data.run_states).map(([s,n]) => (states[s] || 'สถานะอื่น') + ' ' + n).join(', ') || 'ไม่มีรอบวิเคราะห์');
   }
   function live(data) {
     $('dbLive').replaceChildren();
     if (data.context) $('dbLive').append(node('p',window.CCTVMode.origin(data.context)));
     $('dbLiveState').textContent = states[data.status] || data.status;
     if (!data.session_id) {
-      $('dbLive').append(node('p',window.CCTVMode.active ? 'ยังไม่ได้เริ่ม Live ในสถานการณ์สาธิต' : 'ยังไม่มีเซสชัน Live ใน backend process นี้'));
+      $('dbLive').append(node('p',window.CCTVMode.active ? 'ยังไม่ได้เริ่มสถานการณ์สาธิต' : 'ยังไม่มีการเริ่มตรวจจับแบบ Live'));
     } else {
-      for (const text of ['เซสชัน: ' + data.session_id,
+      for (const text of ['รหัสรอบ: ' + data.session_id,
         'สถานะ: ' + (states[data.status] || data.status),
-        'แหล่งภาพ: ' + (data.playback_mode === 'realtime' ? 'RTSP' : 'ไฟล์ replay'),
-        data.context ? 'เวลาเดโม '+data.elapsed_s+' s · ผลบันทึก/สมมติ ไม่ใช่การวัดเฟรมจริง' : 'เฟรมรับเข้า ' + data.frames_received + ' · ประมวลผลแล้ว ' + data.frames_processed,
-        data.context ? 'ประสิทธิภาพไม่ได้วัดในรอบสาธิต · อุปกรณ์จากรอบที่บันทึก: '+(data.device_used||'ไม่ได้วัด') : 'YOLO/X3D: ' + data.device_used + ' · YuNet: CPU']) $('dbLive').append(node('p',text));
+        'แหล่งภาพ: ' + (data.playback_mode === 'realtime' ? 'กล้อง RTSP' : 'ไฟล์วิดีโอ'),
+        data.context ? 'เวลาสถานการณ์: '+data.elapsed_s+' วินาที · ใช้ผลตัวอย่างที่เตรียมไว้' : 'เฟรมที่รับเข้า ' + data.frames_received + ' · ประมวลผลแล้ว ' + data.frames_processed,
+        data.context ? 'ความเร็วและเวลาประมวลผลไม่ได้วัดในสถานการณ์สาธิต · อุปกรณ์จากผลที่บันทึก: '+(data.device_used||'ไม่ได้วัด') : 'รุ่นโมเดล YOLO/X3D: ' + data.device_used + ' · YuNet: CPU']) $('dbLive').append(node('p',text));
       if (data.reason) $('dbLive').append(node('p','เหตุผล: ' + data.reason));
     }
-    $('dbLiveMessage').textContent = (window.CCTVMode.active ? 'สถานะเซสชันสาธิต · ' : 'อ่านสถานะจาก API แล้ว · ') + fmt(data.generated_at || new Date());
+    $('dbLiveMessage').textContent = (window.CCTVMode.active ? 'สถานะสถานการณ์สาธิต · ' : 'อัปเดตสถานะล่าสุด · ') + fmt(data.generated_at || new Date());
   }
   async function load({background = false} = {}) {
     const current = ++token;
@@ -90,8 +90,8 @@
     if (!background) {
       clearHistory(); $('dbLive').replaceChildren(); $('dbLiveState').textContent = '—';
       $('dbMessage').textContent = window.CCTVMode.active
-        ? 'กำลังอ่านภาพรวมสาธิตจากหน่วยความจำ…' : 'กำลังอ่านภาพรวมจาก SQLite…';
-      $('dbLiveMessage').textContent = 'กำลังอ่านสถานะ Live…';
+        ? 'กำลังโหลดข้อมูลสาธิต…' : 'กำลังโหลดประวัติผลตรวจจับ…';
+      $('dbLiveMessage').textContent = 'กำลังโหลดสถานะการเฝ้าระวัง…';
     }
     try {
       const results = await Promise.allSettled([
@@ -103,12 +103,12 @@
       else {
         clearHistory();
         $('navLogs').textContent = '—';
-        $('dbMessage').textContent = 'อ่านภาพรวมไม่ได้ · ' + results[0].reason.message + ' · ลองรีเฟรชอีกครั้ง';
+        $('dbMessage').textContent = 'โหลดภาพรวมไม่ได้ · ' + results[0].reason.message + ' · ลองอัปเดตอีกครั้ง';
       }
       if (results[1].status === 'fulfilled') live(results[1].value);
       else {
         $('dbLive').replaceChildren(); $('dbLiveState').textContent = '—';
-        $('dbLiveMessage').textContent = 'อ่านสถานะ Live ไม่ได้ · ' + results[1].reason.message;
+        $('dbLiveMessage').textContent = 'โหลดสถานะการเฝ้าระวังไม่ได้ · ' + results[1].reason.message;
       }
     } finally {
       clearTimeout(timeout);

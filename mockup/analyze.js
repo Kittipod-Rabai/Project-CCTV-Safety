@@ -41,35 +41,36 @@
   const HEALTH_MODELS = ['yolov8n', 'yolov8s', 'x3d_s'];
   const PROBE_TIMEOUT_MS = 6000;
 
-  const MSG_NETWORK = 'เชื่อมต่อ API ไม่ได้ — รัน backend ก่อน';
+  const MSG_NETWORK = 'เชื่อมต่อระบบวิเคราะห์ไม่ได้ — โปรดตรวจว่าระบบเริ่มทำงานแล้ว';
   const ERROR_TH = {
     missing_file: 'ไม่พบไฟล์ หรือไฟล์ว่าง (0 ไบต์)',
-    invalid_parameter: 'พารามิเตอร์ไม่ถูกต้อง (model ต้องเป็น yolov8n / yolov8s, จำนวนเฟรม 1–60, ความถี่ตรวจ 1–30 ครั้ง/วินาที)',
+    invalid_parameter: 'ค่าที่เลือกไม่ถูกต้อง · เลือกรุ่น YOLOv8n หรือ YOLOv8s, จำนวนเฟรม 1–60 และความถี่ตรวจ 1–30 ครั้ง/วินาที',
     file_too_large: 'ไฟล์ใหญ่เกิน 100 MB',
     media_dimensions_too_large: 'ความละเอียดของภาพหรือเฟรมวิดีโอเกินขีดจำกัดที่ระบบรองรับ',
     analysis_busy: 'มีงานวิเคราะห์อื่นกำลังทำงานอยู่ กรุณารอให้เสร็จก่อนแล้วลองอีกครั้ง',
     unsupported_media_type: 'ชนิดไฟล์ไม่รองรับ — ใช้ได้เฉพาะ .jpg .jpeg .png .bmp .webp .mp4 .avi .mov .mkv',
-    decode_failed: 'อ่านไฟล์ไม่ได้ — ถอดรหัสภาพ/วิดีโอไม่สำเร็จ (ไฟล์เสีย หรือ codec ไม่รองรับ)',
+    decode_failed: 'อ่านไฟล์ไม่ได้ · ไฟล์อาจเสียหรือรูปแบบภาพ/วิดีโอไม่รองรับ',
     video_required: 'ต้องใช้ไฟล์วิดีโอ (mp4, avi, mov, mkv)',
     video_too_long: 'วิดีโอยาวเกินไป (เกิน 30 ช่วง × 2 วินาที หรือประมาณ 60 วินาที)',
-    weights_missing: 'ไม่พบไฟล์น้ำหนักโมเดล (.pt) — คัดลอกไฟล์ไปไว้ในโฟลเดอร์ weights ก่อน',
-    model_load_failed: 'โหลดโมเดลไม่สำเร็จ (ไฟล์น้ำหนักหรือ runtime contract ไม่ถูกต้อง)',
-    device_unavailable: 'อุปกรณ์ที่เลือกใช้งานไม่ได้ใน runtime นี้ — เลือก Auto/CPU หรือเตรียม CUDA runtime ให้ครบ',
-    privacy_model_unavailable: 'ไม่พบหรือโหลด YuNet ไม่ได้ — ซ่อนไฟล์ต้นฉบับไว้เพื่อความเป็นส่วนตัว',
-    anonymization_incomplete: 'ตรวจใบหน้าไม่ครบทุกเฟรม — ซ่อนไฟล์ต้นฉบับไว้เพื่อความเป็นส่วนตัว',
-    internal_error: 'เกิดข้อผิดพลาดภายใน backend ระหว่างประมวลผล — ลองใหม่ หรือตรวจ log ของ server',
-    not_found: 'ไม่พบ endpoint ของ API — ตรวจว่ารัน backend เวอร์ชันที่ถูกต้อง',
-    method_not_allowed: 'เรียก API ด้วย HTTP method ที่ไม่ถูกต้อง'
+    weights_missing: 'ไม่พบไฟล์โมเดล (.pt) · โปรดตรวจสอบโฟลเดอร์ weights',
+    model_load_failed: 'เปิดโมเดลไม่สำเร็จ · โปรดตรวจสอบไฟล์โมเดลและการตั้งค่าระบบ',
+    device_unavailable: 'อุปกรณ์ที่เลือกใช้งานไม่ได้ · โปรดลองเลือกอัตโนมัติหรือ CPU',
+    privacy_model_unavailable: 'ตรวจสอบใบหน้าไม่ได้ · ระบบซ่อนไฟล์ต้นฉบับไว้เพื่อปกป้องความเป็นส่วนตัว',
+    anonymization_incomplete: 'ตรวจสอบใบหน้าได้ไม่ครบทุกเฟรม · ระบบซ่อนไฟล์ต้นฉบับไว้เพื่อปกป้องความเป็นส่วนตัว',
+    internal_error: 'เกิดข้อผิดพลาดระหว่างประมวลผล · โปรดลองอีกครั้ง หากยังพบปัญหาโปรดแจ้งผู้ดูแลระบบ',
+    not_found: 'ระบบวิเคราะห์ไม่รองรับคำขอนี้ · โปรดเริ่มระบบใหม่หรือแจ้งผู้ดูแลระบบ',
+    method_not_allowed: 'ระบบได้รับคำขอในรูปแบบที่ไม่รองรับ · โปรดลองอีกครั้ง'
   };
   const HEALTH_TH = { loaded: 'โหลดแล้ว', available: 'พร้อมโหลด', missing: 'ไม่พบไฟล์' };
-  const S1_IDLE = 'เลือกไฟล์แล้วกด Analyze เพื่อเริ่มวิเคราะห์';
-  const S2_IDLE = 'Stage 2 ต้องใช้ไฟล์วิดีโอ — จะเรียกเฉพาะเมื่ออัปโหลดวิดีโอ';
+  const S1_IDLE = 'เลือกไฟล์แล้วกด “วิเคราะห์ไฟล์” เพื่อเริ่ม';
+  const S2_IDLE = 'การประเมินการทะเลาะใช้ได้กับวิดีโอ ระบบจะข้ามส่วนนี้เมื่อเลือกภาพนิ่ง';
 
   // Plain-Thai names for the schema v2 classes (English name is shown too).
   const CLASS_TH = { person: 'คน', helmet: 'หมวกนิรภัย', vest: 'เสื้อสะท้อนแสง', fall: 'คนล้ม', fire: 'ไฟ', smoke: 'ควัน' };
+  const PPE_ALERT_TH = { no_helmet: 'ไม่พบหมวกนิรภัย', no_vest: 'ไม่พบเสื้อสะท้อนแสง' };
   const HAZARD = ['fall', 'fire', 'smoke'];
-  const HAZARD_SENTENCE = { fire: 'พบสัญญาณไฟ', smoke: 'พบสัญญาณควัน', fall: 'พบสัญญาณ Fall · ตรวจสอบ' };
-  const S2_TH = { fight: 'ทะเลาะ', non_fight: 'ปกติ' };
+  const HAZARD_SENTENCE = { fire: 'ตรวจพบสัญญาณไฟ', smoke: 'ตรวจพบสัญญาณควัน', fall: 'สงสัยว่ามีคนล้ม · โปรดตรวจสอบ' };
+  const S2_TH = { fight: 'สงสัยว่ามีการทะเลาะ', non_fight: 'ไม่พบสัญญาณการทะเลาะ' };
 
   const CLASS_COLOR = {
     person: '#38bdf8', helmet: '#22c55e', vest: '#facc15',
@@ -187,14 +188,14 @@
     try { body = await res.json(); } catch (e) { body = null; }
     if (res.ok) {
       if (body && typeof body === 'object') return { ok: true, data: body };
-      return { ok: false, message: 'API ตอบกลับในรูปแบบที่ไม่รู้จัก (HTTP ' + res.status + ')' };
+      return { ok: false, message: 'ระบบวิเคราะห์ส่งผลในรูปแบบที่ไม่รู้จัก (HTTP ' + res.status + ')' };
     }
     const err = body && body.error;
     if (err && typeof err.code === 'string') {
       const th = ERROR_TH[err.code] || ('เกิดข้อผิดพลาดจาก API (HTTP ' + res.status + ')');
       return { ok: false, code: err.code, message: th, detail: typeof err.message === 'string' ? err.message : '' };
     }
-    if (res.status === 404) return { ok: false, message: MSG_NETWORK + ' (ไม่พบ endpoint — HTTP 404)' };
+    if (res.status === 404) return { ok: false, message: MSG_NETWORK + ' (HTTP 404)' };
     return { ok: false, message: 'เกิดข้อผิดพลาดจาก API (HTTP ' + res.status + ')' };
   }
 
@@ -302,7 +303,7 @@
         if (videoEl.videoWidth > 0 && videoEl.videoHeight > 0) finish(true, '');
         else finish(false, 'เบราว์เซอร์อ่านไฟล์ได้แต่ไม่มีภาพวิดีโอที่ถอดรหัสได้');
       };
-      const onErr = () => finish(false, 'เบราว์เซอร์ไม่รองรับ codec/รูปแบบของไฟล์นี้');
+      const onErr = () => finish(false, 'เบราว์เซอร์เล่นไฟล์รูปแบบนี้ไม่ได้');
       const timer = setTimeout(() => finish(false, 'เบราว์เซอร์โหลดวิดีโอไม่ทันเวลา'), PROBE_TIMEOUT_MS);
       videoEl.addEventListener('loadeddata', onData);
       videoEl.addEventListener('error', onErr);
@@ -434,7 +435,7 @@
     clear(ui.nowDets);
     clear(ui.s1Ppe);
     if (!frame) {
-      ui.nowDets.textContent = 'ไม่มีผลตรวจ Stage 1 ที่ตรงกับเวลานี้';
+      ui.nowDets.textContent = 'ไม่มีผลตรวจจับที่ตรงกับเวลานี้';
       return;
     }
     const counts = {};
@@ -446,13 +447,13 @@
 
     if (!st.ppeCheck) return;
     if (!frame.ppe.length) {
-      ui.s1Ppe.appendChild(el('div', 'az-empty-sm', 'ไม่มีแถว PPE (ไม่พบคนที่คะแนน ≥ ' + num(st.s1.ppe_min_confidence, 2) + ')'));
+      ui.s1Ppe.appendChild(el('div', 'az-empty-sm', 'ไม่มีผลประเมิน PPE (ไม่พบบุคคลที่มีคะแนนตั้งแต่ ' + num(st.s1.ppe_min_confidence, 2) + ' ขึ้นไป)'));
       return;
     }
     const tab = el('table', 'az-ppetab');
-    tab.appendChild(el('caption', null, 'PPE — คำนวณภายหลัง (ไม่ใช่ class โมเดล) · method: ' + frame.ppe[0].method));
+    tab.appendChild(el('caption', null, 'ผล PPE คำนวณจากกรอบที่ตรวจพบ ไม่ใช่ผลตรวจจับโดยตรงจากโมเดล · วิธีคำนวณ: ' + frame.ppe[0].method));
     const thead = el('thead'), hr = el('tr');
-    ['คน', 'คะแนน', 'หมวก', 'เสื้อ', 'ผล (derived)'].forEach(t => hr.appendChild(el('th', null, t)));
+    ['บุคคล', 'คะแนน', 'หมวกนิรภัย', 'เสื้อสะท้อนแสง', 'ผลประเมิน'].forEach(t => hr.appendChild(el('th', null, t)));
     thead.appendChild(hr);
     tab.appendChild(thead);
     const tbody = el('tbody');
@@ -464,11 +465,11 @@
         tr.dataset.pi = String(row.person_index);
         tr.appendChild(el('td', 'mono', '#' + (row.person_index + 1)));
         tr.appendChild(el('td', 'mono', num(row.person_confidence, 2)));
-        tr.appendChild(el('td', row.has_helmet ? 'yes' : 'no', row.has_helmet ? '✓' : '✗'));
-        tr.appendChild(el('td', row.has_vest ? 'yes' : 'no', row.has_vest ? '✓' : '✗'));
+        tr.appendChild(el('td', row.has_helmet ? 'yes' : 'no', row.has_helmet ? 'พบ' : 'ไม่พบ'));
+        tr.appendChild(el('td', row.has_vest ? 'yes' : 'no', row.has_vest ? 'พบ' : 'ไม่พบ'));
         const td = el('td');
         if (!row.alerts.length) td.appendChild(el('span', 'az-derived ok', 'ครบ'));
-        row.alerts.forEach(a => td.appendChild(el('span', 'az-derived', a)));
+        row.alerts.forEach(a => td.appendChild(el('span', 'az-derived', PPE_ALERT_TH[a] || a)));
         tr.appendChild(td);
         const on = () => setHighlight(row.person_index);
         const off = () => setHighlight(null);
@@ -919,19 +920,19 @@
 
   function renderStage1Summary(data) {
     const s = stage1Summary(data);
-    const parts = [s.persons ? 'พบกล่อง person สูงสุด ' + s.persons + ' กล่อง/เฟรม' : 'ไม่พบกล่อง person'];
+    const parts = [s.persons ? 'ตรวจพบบุคคลสูงสุด ' + s.persons + ' กรอบต่อเฟรม' : 'ไม่พบบุคคลในภาพ'];
     let warn = s.hazards.length > 0;
     if (st.ppeCheck && s.ppeRows) {
       if (s.noHelmet || s.noVest) {
-        if (s.noHelmet) parts.push('ไม่สวมหมวก ' + s.noHelmet);
-        if (s.noVest) parts.push('ไม่สวมเสื้อ ' + s.noVest);
+        if (s.noHelmet) parts.push('ไม่พบหมวกนิรภัย ' + s.noHelmet + ' ราย');
+        if (s.noVest) parts.push('ไม่พบเสื้อสะท้อนแสง ' + s.noVest + ' ราย');
         warn = true;
       } else {
-        parts.push('สวม PPE ครบ');
+        parts.push('ตรวจพบอุปกรณ์ PPE ครบตามเกณฑ์');
       }
     }
-    s.hazards.forEach(c => parts.push(c === 'fall' ? 'พบสัญญาณ Fall · ตรวจสอบ' : HAZARD_SENTENCE[c]));
-    if (s.persons > 1) parts.push('จำนวนกล่องอาจซ้ำ ไม่ใช่จำนวนคนที่ยืนยันแล้ว');
+    s.hazards.forEach(c => parts.push(HAZARD_SENTENCE[c]));
+    if (s.persons > 1) parts.push('จำนวนกรอบอาจซ้ำ จึงไม่ใช่จำนวนบุคคลที่ยืนยันแล้ว');
     ui.s1Sentence.textContent = parts.join(' · ');
     ui.s1Sentence.className = 'az-sentence' + (warn ? ' warn' : ' ok');
   }
@@ -1060,7 +1061,7 @@
     const w = windowAt(t);
     const pw = w && dataWindowDecision(w.index);
     const label = pw ? pw.decision_label : (w ? (S2_TH[w.label] || w.label) : 'ไม่มีผลช่วงนี้');
-    ui.corner.textContent = 'Stage 2: ' + label;
+    ui.corner.textContent = 'ผลประเมินการทะเลาะ: ' + label;
     ui.corner.className = 'az-corner' + (pw && pw.decision === 'review_fall_fight_conflict'
       ? ' review' : (w && w.label === 'fight' ? ' fight' : ''));
   }
@@ -1079,22 +1080,22 @@
     const candidateCount = data.pipeline ? data.pipeline.fight_candidate_windows : 0;
     const fallCount = data.pipeline ? data.pipeline.fall_detected_windows : 0;
     if (reviewCount > 0) {
-      ui.s2Sentence.textContent = '⚠ X3D ทาย Fight แต่พบสัญญาณคนล้ม ' + reviewCount +
-        ' ช่วง — ผลกำกวม ต้องตรวจสอบ (ผลดิบ X3D: ' + sm.fight_windows + ' ช่วง)';
+      ui.s2Sentence.textContent = '⚠ ผลประเมินการทะเลาะไม่ตรงกับสัญญาณคนล้ม ' + reviewCount +
+        ' ช่วง · ผลยังไม่ชัดเจน โปรดตรวจสอบ (ผลจาก X3D: ' + sm.fight_windows + ' ช่วง)';
       ui.s2Sentence.className = 'az-sentence warn';
     } else if (candidateCount > 0) {
-      ui.s2Sentence.textContent = '⚠ X3D สงสัย Fight ' + candidateCount +
-        ' ช่วง — เป็นผลคัดกรอง pilot ยังไม่ใช่การยืนยัน';
+      ui.s2Sentence.textContent = '⚠ พบช่วงที่อาจมีการทะเลาะ ' + candidateCount +
+        ' ช่วง · เป็นผลคัดกรองเบื้องต้น ไม่ใช่การยืนยันเหตุการณ์';
       ui.s2Sentence.className = 'az-sentence warn';
     } else if (data.pipeline && fallCount > 0) {
-      ui.s2Sentence.textContent = '⚠ พบสัญญาณ Fall ' + fallCount +
-        ' ช่วง · X3D ไม่ได้ทาย Fight ในช่วงที่พบการล้ม';
+      ui.s2Sentence.textContent = '⚠ สงสัยว่ามีคนล้ม ' + fallCount +
+        ' ช่วง · ไม่พบผลประเมินว่าเป็นการทะเลาะในช่วงเดียวกัน';
       ui.s2Sentence.className = 'az-sentence ok';
     } else {
       const found = sm.fight_windows > 0;
       ui.s2Sentence.textContent = data.pipeline
-        ? '✓ X3D ไม่ได้ทาย Fight (ผลคัดกรอง pilot; ไม่ใช่การยืนยันว่าไม่มีเหตุการณ์)'
-        : (found ? '⚠ X3D ทาย Fight' : '✓ X3D ทาย non-fight');
+        ? '✓ ไม่พบสัญญาณการทะเลาะจากผลคัดกรอง · ไม่ใช่การยืนยันว่าไม่มีเหตุการณ์'
+        : (found ? '⚠ ผลประเมินพบสัญญาณการทะเลาะ' : '✓ ไม่พบสัญญาณการทะเลาะ');
       ui.s2Sentence.className = 'az-sentence' + (found && !data.pipeline ? ' warn' : ' ok');
     }
 
@@ -1118,7 +1119,7 @@
       metaItem(ui.s2Meta, 'tracking trigger windows', data.pipeline.candidate_triggered_windows + ' / ' + data.pipeline.total_windows);
       metaItem(ui.s2Meta, 'Fight ที่ไม่มี tracking trigger', data.pipeline.fight_without_candidate_trigger);
       metaItem(ui.s2Meta, 'ล้ม/Fight กำกวม · ตรวจสอบ', reviewCount);
-      metaItem(ui.s2Meta, 'Fight candidate · pilot', candidateCount);
+      metaItem(ui.s2Meta, 'ช่วงที่อาจมีการทะเลาะ · รุ่นทดลอง', candidateCount);
       metaItem(ui.s2Meta, 'Tracking', 'สร้าง track จากกล่อง person; กล่องซ้ำอาจนับเป็นหลาย track');
       metaItem(ui.s2Meta, 'Proximity trigger', 'ระยะ ≤ ' + num(data.pipeline.proximity_diagonals, 2) + ' เท่าของเส้นทแยงมุมภาพ');
       metaItem(ui.s2Meta, 'Motion trigger', 'ความเร็ว ≥ ' + num(data.pipeline.motion_diagonals_per_s, 2) + ' เส้นทแยงมุมภาพ/วินาที');
@@ -1227,15 +1228,15 @@
     let r = await callApi(API.stage1, { method: 'POST', body: stage1Form(file, mode, usedPrivacy, usedAnalysis) });
     if (token !== runToken) return null;
     if (!r.ok && mode === 'dense' && r.code === 'video_too_long') {
-      notice = 'วิดีโอยาวเกินกว่าจะตรวจต่อเนื่องได้ → แสดงผลเป็นภาพทีละเฟรมแทน';
-      setState(ui.s1State, 'loading', 'วิดีโอยาวเกินสำหรับโหมดต่อเนื่อง — กำลังลองแบบเลือกเฟรม …');
+      notice = 'วิดีโอยาวเกินกว่าจะตรวจต่อเนื่องได้ · จะแสดงผลเป็นภาพทีละเฟรมแทน';
+      setState(ui.s1State, 'loading', 'วิดีโอยาวเกินสำหรับการตรวจต่อเนื่อง · กำลังลองตรวจทีละเฟรม …');
       r = await callApi(API.stage1, { method: 'POST', body: stage1Form(file, 'frames', usedPrivacy, usedAnalysis) });
       if (token !== runToken) return null;
     }
     if (!r.ok) { setState(ui.s1State, 'error', errorText(r), r.detail); return r; }
     const d = r.data;
     if (!Array.isArray(d.frames) || !d.frames.length || !d.source || !Array.isArray(d.class_names)) {
-      setState(ui.s1State, 'error', 'API ตอบกลับในรูปแบบที่ไม่รู้จัก (Stage 1)');
+      setState(ui.s1State, 'error', 'ระบบวิเคราะห์ส่งผลในรูปแบบที่ไม่รู้จัก · การตรวจจับวัตถุ');
       return { ok: false };
     }
     d.privacy = { model: 'OpenCV YuNet (local)', settings: {
@@ -1249,7 +1250,7 @@
   }
 
   async function runStage2(file, token) {
-    setState(ui.s2State, 'loading', 'กำลังจัดประเภท ทะเลาะ / ปกติ ด้วย X3D-S …');
+    setState(ui.s2State, 'loading', 'กำลังประเมินสัญญาณการทะเลาะด้วย X3D-S …');
     const fd = new FormData();
     fd.append('file', file, file.name);
     fd.append('device', ui.device ? ui.device.value : 'auto');
@@ -1260,7 +1261,7 @@
     if (!r.ok) { setState(ui.s2State, 'error', errorText(r), r.detail); return r; }
     const d = r.data;
     if (!Array.isArray(d.windows) || !d.summary || !Array.isArray(d.class_names) || !d.source) {
-      setState(ui.s2State, 'error', 'API ตอบกลับในรูปแบบที่ไม่รู้จัก (Stage 2)');
+      setState(ui.s2State, 'error', 'ระบบวิเคราะห์ส่งผลในรูปแบบที่ไม่รู้จัก · การประเมินการทะเลาะ');
       return { ok: false };
     }
     renderStage2(d);
@@ -1293,8 +1294,8 @@
         d.face_blur.faces_by_frame.length !== d.stage1.source.frame_count ||
         !Array.isArray(d.stage1.frames) ||
         !Array.isArray(d.stage2.windows) || !Array.isArray(d.pipeline.windows)) {
-      setState(ui.s1State, 'error', 'API ตอบกลับในรูปแบบ pipeline ที่ไม่รู้จัก');
-      setState(ui.s2State, 'error', 'API ตอบกลับในรูปแบบ pipeline ที่ไม่รู้จัก');
+      setState(ui.s1State, 'error', 'ระบบวิเคราะห์ส่งผลในรูปแบบที่ไม่รู้จัก');
+      setState(ui.s2State, 'error', 'ระบบวิเคราะห์ส่งผลในรูปแบบที่ไม่รู้จัก');
       return { ok: false };
     }
     applyFallFightReview(d);
@@ -1342,16 +1343,16 @@
       pw.fall_frames = fallFrames.length;
       if (x3d.label === 'fight' && pw.fall_detected) {
         pw.decision = 'review_fall_fight_conflict';
-        pw.decision_label = 'ล้ม/Fight กำกวม · ตรวจสอบ';
+        pw.decision_label = 'ผลคนล้มและการทะเลาะไม่ชัดเจน · โปรดตรวจสอบ';
       } else if (x3d.label === 'fight') {
         pw.decision = 'fight_candidate';
-        pw.decision_label = 'สงสัย Fight · pilot';
+        pw.decision_label = 'สงสัยว่าอาจมีการทะเลาะ · รุ่นทดลอง';
       } else if (pw.fall_detected) {
         pw.decision = 'fall_detected';
-        pw.decision_label = 'พบสัญญาณ Fall · ตรวจสอบ';
+        pw.decision_label = 'สงสัยว่ามีคนล้ม · โปรดตรวจสอบ';
       } else {
         pw.decision = 'no_fight_candidate';
-        pw.decision_label = 'ไม่พบ Fight candidate';
+        pw.decision_label = 'ไม่พบสัญญาณที่เข้าเกณฑ์การทะเลาะ';
       }
     });
     const summary = data.pipeline.summary;
@@ -1383,7 +1384,7 @@
         renderStage1(data.stage1,window.CCTVMode.origin(data.context));
         setSafePreview(data.stage1.frames[0].image_jpeg_b64);
         if(data.stage2)renderStage2(data.stage2);
-        else setState(ui.s2State,'info','ภาพนิ่ง · ไม่ใช้ Stage 2 ในสถานการณ์นี้');
+        else setState(ui.s2State,'info','เลือกภาพนิ่ง · ระบบจะไม่ประเมินการทะเลาะในกรณีนี้');
         setState(ui.status,'info',window.CCTVMode.origin(data.context)+' · รอบ '+data.run_id);
       } catch(error) { if(token===runToken)setState(ui.status,'error',error.message); }
       finally { if(token===runToken)ui.run.disabled=false; }
@@ -1411,8 +1412,8 @@
       else notice = 'เบราว์เซอร์เล่นวิดีโอนี้ไม่ได้ (' + p.reason + ') จึงแสดงผลเป็นภาพทีละเฟรมแทนการเล่นวิดีโอ';
     }
     setState(ui.status, 'loading', kind === 'video'
-      ? 'กำลังส่งวิดีโอไปวิเคราะห์ (Stage 1 + Stage 2) …'
-      : 'กำลังส่งภาพไปวิเคราะห์ (Stage 1) …');
+      ? 'กำลังส่งวิดีโอไปตรวจจับวัตถุและประเมินการทะเลาะ …'
+      : 'กำลังส่งภาพไปตรวจจับวัตถุ …');
 
     const results = [];
     try {
@@ -1423,7 +1424,7 @@
         results.push(await runStage1(file, mode, notice, token));
         if (token !== runToken) return;
         if (kind === 'video') results.push(await runStage2(file, token));
-        else setState(ui.s2State, 'info', 'Stage 2 ต้องใช้ไฟล์วิดีโอ — ไม่ได้เรียก Stage 2 สำหรับภาพนิ่ง');
+        else setState(ui.s2State, 'info', 'การประเมินการทะเลาะใช้ได้กับวิดีโอ · ข้ามขั้นตอนนี้เมื่อเลือกภาพนิ่ง');
       }
     } catch (err) {
       if (token === runToken) setState(ui.status, 'error', 'แสดงผลไม่สำเร็จ — ' + err.message);
@@ -1435,7 +1436,7 @@
     ui.run.disabled = false;
     ui.preview.classList.add('thumb');   // the result view replaces the large preview
     const failed = results.filter(r => !r || !r.ok).length;
-    if (failed === 0 && notice) setState(ui.status, 'warn', 'วิเคราะห์แยก Stage 1 และ Stage 2 สำเร็จ · แสดงภาพทีละเฟรม · ไม่ใช่ Pipeline รวม');
+    if (failed === 0 && notice) setState(ui.status, 'warn', 'ตรวจจับวัตถุและประเมินการทะเลาะสำเร็จ · แสดงภาพทีละเฟรม');
     else if (failed === 0) ui.status.hidden = true;
     else if (failed === results.length) setState(ui.status, 'error', 'วิเคราะห์ไม่สำเร็จ — ดูรายละเอียดในแต่ละ Stage');
     else setState(ui.status, 'warn', 'วิเคราะห์เสร็จบางส่วน — ดูรายละเอียดในแต่ละ Stage');
