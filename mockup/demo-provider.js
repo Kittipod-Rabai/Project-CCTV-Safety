@@ -17,7 +17,7 @@
   const DEFAULTS = {yolo:{thresholds:{person:.25,helmet:.2,vest:.2,fall:.2,fire:.2,smoke:.2},iou:.7,imgsz:640,max_det:300},
     x3d:{fight_threshold:.5},tracking:{proximity_diagonals:.16,motion_diagonals_per_s:.25,max_track_gap_s:.75}};
   const SCENARIOS = [
-    {id:'captured-smoke',label:'คลังสินค้า · Smoke/Fire · ผลบันทึกจริงจากภาพนิ่ง',kind:'captured',zone:'คลังสินค้า'},
+    {id:'captured-smoke',label:'ภาพทดสอบ D-Fire · Smoke/Fire · ผลบันทึกจากภาพนิ่ง',kind:'captured',zone:'ชุดทดสอบ D-Fire'},
     {id:'ppe-ok',label:'สายการผลิต · PPE ครบ · สมมติ',zone:'สายการผลิต',detections:[['person',.94],['helmet',.91],['vest',.89]]},
     {id:'ppe-missing',label:'จุดรับสินค้า · PPE ไม่ครบ · สมมติ',zone:'จุดรับสินค้า',detections:[['person',.92]]},
     {id:'fall',label:'ทางเดินโรงงาน · Fall · สมมติ',zone:'ทางเดินโรงงาน',detections:[['person',.91],['fall',.77]],fight:.12},
@@ -74,10 +74,13 @@
       return {mode:'demo',kind:scenario.kind==='captured'?'captured':'synthetic',source:scenario.label,
         captured_at:capture?.captured_at||null,evidence:capture?.evidence||null,
         recorded_settings:capture?.settings||null,recorded_device:capture?.device_used||null,
-        note:scenario.kind==='captured'?'ผลบันทึกจริงจากภาพทดสอบ D-Fire · โซนคลังเป็นบริบทสมมติ · เล่นซ้ำจากภาพนิ่ง ไม่ได้รันโมเดลใหม่':'สถานการณ์สมมติ · ภาพวาดและคะแนนตัวอย่าง ไม่ใช่ผลโมเดล'};
+        note:scenario.kind==='captured'?'ผลโมเดลที่บันทึกจากภาพทดสอบ D-Fire กลางแจ้ง · ไม่ใช่ภาพจากโรงงาน · เล่นซ้ำจากภาพนิ่ง ไม่ได้รันโมเดลใหม่ · คะแนนเดิม Smoke 0.8779 / Fire 0.3589':'สถานการณ์สมมติ · ภาพวาดและคะแนนตัวอย่าง ไม่ใช่ผลโมเดล'};
     }
     begin(scenario, sourceType='live', settings=this.settings, context=this.context(scenario)) {
-      const run={id:'DEMO-RUN-'+String(++this.serial).padStart(4,'0'),source_label:'โรงงานตัวอย่าง / '+scenario.zone+' / '+scenario.id+' (ไฟล์สาธิต)',
+      const sourceLabel=scenario.kind==='captured'
+        ? 'ชุดทดสอบ D-Fire / WEB11091.jpg · เล่นซ้ำจากภาพนิ่ง'
+        : 'โรงงานสมมติ / '+scenario.zone+' / '+scenario.id+' (สถานการณ์สาธิต)';
+      const run={id:'DEMO-RUN-'+String(++this.serial).padStart(4,'0'),source_label:sourceLabel,
         source_type:sourceType,state:'running',created_at:iso(this.time),completed_at:null,context:clone(context),analysis_settings:clone(settings),settings_revision:this.revision};
       this.runs.push(run);return run;
     }

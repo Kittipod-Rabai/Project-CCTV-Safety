@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CCTV Safety — Local Pilot</title>
+<title>AEGIVIS — AI-Powered Safety Shield</title>
 <style>
 :root{
   --bg:#0a0e13; --panel:#111823; --panel2:#161f2c; --panel3:#1c2635;
@@ -39,13 +39,12 @@ button:focus-visible,.nav-item:focus-visible,.fchip:focus-visible{outline:2px so
 }
 .brand{display:flex;align-items:center;gap:10px;padding:6px 8px 18px}
 .brand-mark{
-  width:34px;height:34px;border-radius:9px;flex:none;
-  background:linear-gradient(145deg,#0ea5e9,#0369a1);
-  display:grid;place-items:center;box-shadow:0 0 0 1px #1e4b66,0 6px 16px -6px #0ea5e9aa;
+  width:42px;height:42px;border-radius:10px;flex:none;overflow:hidden;position:relative;
+  background:#fff;box-shadow:0 0 0 1px #1e4b66,0 6px 16px -6px #0ea5e9aa;
 }
-.brand-mark svg{width:19px;height:19px;stroke:#fff;fill:none;stroke-width:1.9}
+.brand-mark img{position:absolute;width:78px;height:78px;max-width:none;left:-18px;top:-9px}
 .brand-txt b{display:block;font-size:14px;letter-spacing:.2px}
-.brand-txt span{display:block;font-size:10.5px;color:var(--muted2);letter-spacing:.7px;text-transform:uppercase}
+.brand-txt span{display:block;font-size:9.5px;color:var(--muted2);letter-spacing:.55px;text-transform:uppercase}
 
 .nav-label{font-size:10px;letter-spacing:1.1px;color:var(--muted2);text-transform:uppercase;padding:14px 10px 6px}
 .nav-item{
@@ -655,15 +654,20 @@ body:is([data-page="analyze"],[data-page="logs"],[data-page="dashboard"],[data-p
 #dbMessage{font-size:12px;color:var(--muted);min-height:20px}.db-caption{font-size:11.5px;color:var(--muted);padding:0 16px;line-height:1.6}
 .db-series{padding:6px 16px 18px;display:grid;gap:9px}.db-bar{display:grid;grid-template-columns:minmax(110px,1fr) minmax(50px,1fr) 36px;align-items:center;gap:10px;font-size:12px}
 .db-bar meter{width:100%;height:16px;accent-color:var(--accent)}.db-bar meter::-webkit-meter-bar{background:var(--line);border:0}.db-bar meter::-webkit-meter-optimum-value{background:var(--accent)}.db-bar meter::-moz-meter-bar{background:var(--accent)}.db-bar b{text-align:right;font-family:var(--mono)}
+#dbTypes .db-bar{--series-color:var(--accent)}#dbTypes .db-bar>span{display:flex;align-items:center;gap:7px}#dbTypes .db-bar>span:before{content:"";width:8px;height:8px;flex:0 0 8px;border-radius:50%;background:var(--series-color)}#dbTypes .db-bar meter{accent-color:var(--series-color)}#dbTypes .db-bar meter::-webkit-meter-optimum-value{background:var(--series-color)}#dbTypes .db-bar meter::-moz-meter-bar{background:var(--series-color)}
+#dbTypes [data-event-type="person"]{--series-color:#38bdf8}#dbTypes [data-event-type="helmet"]{--series-color:#60a5fa}#dbTypes [data-event-type="vest"]{--series-color:#a3e635}
+#dbTypes [data-event-type="fall"]{--series-color:#fbbf24}#dbTypes [data-event-type="fire"]{--series-color:#ef4444}#dbTypes [data-event-type="smoke"]{--series-color:#cbd5e1}
+#dbTypes [data-event-type="no_helmet"]{--series-color:#f97316}#dbTypes [data-event-type="no_vest"]{--series-color:#2dd4bf}
+#dbTypes [data-event-type="fight"]{--series-color:#c084fc}#dbTypes [data-event-type="non_fight"]{--series-color:#94a3b8}#dbTypes [data-event-type="review_fall_fight_conflict"]{--series-color:#e879f9}
 .db-live,.db-latest{padding:6px 16px 16px;display:grid;gap:10px;overflow-wrap:anywhere}.db-live p{font-size:12px;margin:0;line-height:1.6}
 .db-result{padding:10px 0;border-bottom:1px solid var(--line);font-size:12px;line-height:1.7}.db-result small{display:block;color:var(--muted)}
 .db-session-state{font-size:20px!important;letter-spacing:0!important}.db-empty{font-size:12px;color:var(--muted)}
 /* In-page suspected-event notifications */
-.nt-toggle{white-space:nowrap}.nt-toggle span{font-family:var(--mono);color:var(--accent)}
+.nt-toggle{white-space:nowrap}.nt-toggle #ntCount{font-family:var(--mono);color:var(--accent);font-weight:700}
 .nt-panel{position:fixed;top:66px;right:16px;width:min(440px,calc(100vw - 32px));max-height:calc(100vh - 90px);overflow:auto;z-index:40;padding-bottom:14px;box-shadow:0 18px 60px #0009}
 .nt-panel h2{font-size:15px}.nt-caption{font-size:12px;color:var(--muted);line-height:1.6;margin:12px 16px}.nt-panel>#ntRefresh{margin:0 16px 12px}
 .nt-list{padding:0 16px}.nt-item{padding:12px 0;border-top:1px solid var(--line);overflow-wrap:anywhere;font-size:12px;line-height:1.7}.nt-item small{display:block;color:var(--muted);margin-bottom:8px}.nt-empty{font-size:12px;color:var(--muted)}
-.nt-toast{position:fixed;bottom:18px;right:18px;width:min(430px,calc(100vw - 36px));z-index:40;padding:16px;border-color:var(--warn);box-shadow:0 8px 36px #0009;overflow-wrap:anywhere}
+.nt-toast{position:relative;width:auto;margin:8px 20px;padding:12px 16px;border-color:var(--warn);box-shadow:0 8px 24px #0006;overflow-wrap:anywhere}
 .nt-toast p{font-size:13px;line-height:1.6;margin-bottom:12px}.nt-toast>div{display:flex;gap:8px;flex-wrap:wrap}
 #ntPanel[hidden],#ntToast[hidden]{display:none}
 .st-card{padding:20px}.st-card h2{font-size:18px;margin-bottom:10px}.st-card>p{color:var(--muted);font-size:12px;line-height:1.7;margin:10px 0}
@@ -684,7 +688,12 @@ body[data-mode="demo"] #modeBanner{background:#3a2d0a;color:#fcd34d;border-color
 #demoElapsed,#demoGuide{font-size:11px;color:#fcd34d}#demoGuide{flex-basis:100%;margin:0}
 .demo-context{font-size:12px;color:#fcd34d;line-height:1.6;margin:8px 0}
 body[data-mode="demo"] .db-controls{flex-wrap:wrap}
+.aegivis-banner{display:grid;justify-items:center;gap:10px;padding:14px 16px;margin-bottom:12px}
+.aegivis-banner img{display:block;width:min(100%,260px);height:auto;object-fit:contain;background:#fff;border-radius:8px}
+.aegivis-banner p{color:var(--muted);font-size:13px;line-height:1.6;text-align:center;max-width:48rem}
+.db-demo-seed{margin:-4px 0 10px;padding:8px 12px;border-left:3px solid var(--accent);background:#0b4a6f22}
 @media(max-width:700px){.topbar{flex-wrap:wrap;height:auto;min-height:68px;padding:10px;gap:8px}#modeToggle{white-space:nowrap}#modeBanner,#demoToolbar{padding:8px 12px}#demoToolbar select{width:100%}}
+@media(max-width:700px){.aegivis-banner{gap:8px;padding:12px}.aegivis-banner img{width:min(100%,230px)}.nt-toast{margin:8px 12px}}
 </style>
 <style>
 /* Live page desktop proportions: preview first, results beside it, controls on one readable row. */
@@ -748,10 +757,8 @@ body[data-mode="demo"] .db-controls{flex-wrap:wrap}
   <!-- ================= SIDEBAR ================= -->
   <aside class="sidebar">
     <div class="brand">
-      <div class="brand-mark">
-        <svg viewBox="0 0 24 24"><path d="M12 2l8 3.5v6c0 5-3.4 9.2-8 10.5C7.4 20.7 4 16.5 4 11.5v-6L12 2z"/><circle cx="12" cy="11" r="2.6"/></svg>
-      </div>
-      <div class="brand-txt"><b>CCTV Safety</b><span>Detection System</span></div>
+      <div class="brand-mark"><img src="/assets/aegivis-logo.png" alt="" aria-hidden="true"></div>
+      <div class="brand-txt"><b>AEGIVIS</b><span>Safety Shield</span></div>
     </div>
 
     <div class="nav-label">เมนูหลัก</div>
@@ -805,18 +812,23 @@ body[data-mode="demo"] .db-controls{flex-wrap:wrap}
       <div class="spacer"></div>
       <span class="chip-mock">MOCKUP · ข้อมูลจำลอง</span>
       <span class="chip-real">หน้าเรียก API จริง · pilot</span>
-      <button class="btn nt-toggle" id="ntToggle" type="button" aria-controls="ntPanel" aria-expanded="false">เหตุสงสัย <span id="ntCount" title="จำนวนรายการแจ้งทั้งหมดที่บันทึก">—</span></button>
+      <button class="btn nt-toggle" id="ntToggle" type="button" aria-controls="ntPanel" aria-expanded="false"><span id="ntToggleLabel">เหตุสงสัยทั้งหมด</span><span id="ntCount" title="จำนวนประวัติแจ้งทั้งหมดที่บันทึก">—</span></button>
       <span class="clock" id="clock">--:--:--</span>
       <div class="avatar">OP</div>
     </header>
 
     <!-- ---------- DASHBOARD ---------- -->
     <section class="view on" id="v-dashboard" aria-labelledby="dbTitle">
+      <div class="card aegivis-banner" aria-label="แบรนด์ AEGIVIS">
+        <img src="/assets/aegivis-logo.png" alt="AEGIVIS — AI-Powered Safety Shield">
+        <p>ระบบช่วยเฝ้าระวังความปลอดภัยจากภาพและวิดีโอด้วย AI</p>
+      </div>
       <div class="card db-intro">
         <div><h2 id="dbTitle">ภาพรวมผลวิเคราะห์ที่บันทึกจริง</h2><p><span data-demo-copy="สรุปจากข้อมูลเดโมในหน่วยความจำ · ไม่ใช่เหตุที่ยืนยันแล้ว">สรุปจาก SQLite · รายการผลโมเดลยังไม่ใช่เหตุที่ยืนยันแล้ว</span></p></div>
         <div class="db-controls"><label for="dbPeriod">ช่วงเวลาบันทึก</label><select id="dbPeriod"><option value="today">วันนี้ (Bangkok)</option><option value="7d" selected>7 วันตามปฏิทินรวมวันนี้</option><option value="all">ทั้งหมด</option></select><button class="btn" id="dbRefresh" type="button">รีเฟรชภาพรวม</button></div>
       </div>
       <p id="dbMessage" role="status" aria-live="polite">กำลังอ่านข้อมูลภาพรวม…</p>
+      <p id="dbDemoSeed" class="db-caption db-demo-seed" hidden>ข้อมูลตั้งต้นจำลองย้อนหลัง 7 วัน: 28 รอบ · กราฟนับรายการผลสรุป แยกจากจำนวนรอบ · รอบที่สร้างระหว่างเดโมจะเพิ่มต่อจากชุดตั้งต้น</p>
       <div class="kpis">
         <div class="card kpi"><div class="lbl">รายการผลโมเดล</div><div class="val" id="dbTotal">—</div><div class="delta">หนึ่งรายการต่อรอบ / ประเภทผล / โมเดล</div></div>
         <div class="card kpi"><div class="lbl">รอตรวจสอบในช่วงที่เลือก</div><div class="val" id="dbPending">—</div><div class="delta" id="dbReviewed">รับทราบ — · ปิดรายการ —</div></div>
@@ -948,7 +960,7 @@ body[data-mode="demo"] .db-controls{flex-wrap:wrap}
         <button class="pg" id="rlPrev" type="button" aria-label="หน้าก่อนหน้า" title="หน้าก่อนหน้า">‹</button>
         <button class="pg" id="rlNext" type="button" aria-label="หน้าถัดไป" title="หน้าถัดไป">›</button>
       </div></div>
-      <p class="note">บันทึกลงฐานข้อมูลในเครื่อง · เวลาบันทึกแสดงตาม Asia/Bangkok และแยกจากเวลาในวิดีโอ
+      <p class="note"><span data-demo-copy="ข้อมูลโหมดสาธิตอยู่ในหน่วยความจำ · ไม่เขียนฐานข้อมูลจริง">บันทึกลงฐานข้อมูลในเครื่อง</span> · เวลาบันทึกแสดงตาม Asia/Bangkok และแยกจากเวลาในวิดีโอ
         · รวมประเภทเดียวกันต่อรอบวิเคราะห์/เซสชัน · Observations ไม่ใช่จำนวนคนหรือจำนวนเหตุจริง
         · คะแนน PPE เป็นคะแนน person ที่ใช้ประกอบกฎ ไม่ใช่ความน่าจะเป็นว่าไม่สวมอุปกรณ์</p>
     </section>
@@ -995,7 +1007,7 @@ body[data-mode="demo"] .db-controls{flex-wrap:wrap}
                 วิเคราะห์ไฟล์
               </button>
             </div>
-            <div class="az-saved-settings"><label><input id="azUseSavedSettings" type="checkbox" checked> ใช้ค่าที่บันทึกจากหน้าตั้งค่าระบบ</label><small id="azSavedSettingsMeta">backend จะอ่านค่าที่บันทึกเมื่อเริ่มวิเคราะห์</small></div>
+            <div class="az-saved-settings"><label><input id="azUseSavedSettings" type="checkbox" checked> <span id="azUseSavedSettingsLabel">ใช้ค่าที่บันทึกจากหน้าตั้งค่าระบบ</span></label><small id="azSavedSettingsMeta">backend จะอ่านค่าที่บันทึกเมื่อเริ่มวิเคราะห์</small></div>
             <details class="az-model-settings">
               <summary class="az-settings-summary">ตั้งค่าขั้นสูง · YOLO, X3D และ Tracking <small>ยกเลิกใช้ค่าที่บันทึกเพื่อปรับเฉพาะรอบนี้</small></summary>
               <div class="az-model-grid">
@@ -1154,7 +1166,7 @@ body[data-mode="demo"] .db-controls{flex-wrap:wrap}
 </div>
 
 <section id="ntPanel" class="nt-panel card" hidden aria-labelledby="ntTitle">
-  <div class="card-h"><h2 id="ntTitle">แจ้งเหตุสงสัยภายในเว็บ</h2><button class="btn" id="ntClose" type="button" aria-label="ปิดแผงแจ้งเตือน">ปิด</button></div>
+  <div class="card-h"><h2 id="ntTitle">ประวัติแจ้งเหตุสงสัยทั้งหมด</h2><button class="btn" id="ntClose" type="button" aria-label="ปิดแผงแจ้งเตือน">ปิด</button></div>
   <p class="nt-caption">เหตุสงสัยจากโมเดล ต้องให้ผู้ใช้ตรวจสอบ ไม่ใช่การยืนยันเหตุ</p>
   <p id="ntMessage" class="nt-caption" role="status" aria-live="polite">กำลังอ่านการแจ้งเตือน…</p>
   <p id="ntRule" class="nt-caption">ใช้เงื่อนไขเหตุสงสัยจาก backend</p>
@@ -1163,7 +1175,7 @@ body[data-mode="demo"] .db-controls{flex-wrap:wrap}
 </section>
 <aside id="ntToast" class="nt-toast card" hidden aria-label="การแจ้งเหตุสงสัยใหม่">
   <p id="ntToastText" role="status" aria-live="polite" aria-atomic="true"></p>
-  <div><button class="btn primary" id="ntToastOpen" type="button">เปิดประวัติผลที่แจ้ง</button><button class="btn" id="ntToastClose" type="button" aria-label="ซ่อนข้อความแจ้งเหตุสงสัย">ซ่อน</button></div>
+  <div><button class="btn primary" id="ntToastOpen" type="button">เปิด Logs รายการนี้</button><button class="btn" id="ntToastClose" type="button" aria-label="ซ่อนข้อความแจ้งเหตุสงสัย">ซ่อน</button></div>
 </aside>
 
 <div class="mask" id="rlMask" role="dialog" aria-modal="true" aria-labelledby="rlTitle">
@@ -1484,14 +1496,14 @@ navLogs.textContent = '—';
 navLive.textContent = SCENES.filter(s=>s.boxes.length).length;
 </script>
 <!-- Upload & Analyze: real API calls (no mock data) -->
-<script src="demo-provider.js?v=20261014-shared-demo"></script>
-<script src="demo-mode.js?v=20261014-shared-demo"></script>
-<script src="dashboard.js?v=20261014-shared-demo"></script>
-<script src="logs.js?v=20261014-shared-demo"></script>
-<script src="notifications.js?v=20261014-shared-demo"></script>
-<script src="settings.js?v=20261014-shared-demo"></script>
-<script src="analyze.js?v=20261014-shared-demo"></script>
-<script src="live.js?v=20261014-shared-demo"></script>
-<script src="live-flow.js?v=20261014-shared-demo"></script>
+<script src="demo-provider.js?v=20261015-aegivis-demo"></script>
+<script src="demo-mode.js?v=20261015-aegivis-demo"></script>
+<script src="dashboard.js?v=20261015-aegivis-demo"></script>
+<script src="logs.js?v=20261015-aegivis-demo"></script>
+<script src="notifications.js?v=20261015-aegivis-demo"></script>
+<script src="settings.js?v=20261015-aegivis-demo"></script>
+<script src="analyze.js?v=20261015-aegivis-demo"></script>
+<script src="live.js?v=20261015-aegivis-demo"></script>
+<script src="live-flow.js?v=20261015-aegivis-demo"></script>
 </body>
 </html>

@@ -1365,7 +1365,9 @@
   function setSafePreview(base64) {
     if (typeof base64 !== 'string' || !base64) return;
     clear(ui.preview);
-    const img = el('img'); img.alt = 'ภาพตัวอย่างหลังเบลอใบหน้า';
+    const img = el('img'); img.alt = window.CCTVMode.active
+      ? 'ภาพวาดหรือ preview ที่ตรวจแล้วสำหรับโหมดสาธิต · ไม่ได้ยืนยันการสแกนหรือเบลอใบหน้า'
+      : 'ภาพตัวอย่างหลังเบลอใบหน้า';
     img.src = 'data:image/jpeg;base64,' + base64;
     ui.preview.appendChild(img);
   }

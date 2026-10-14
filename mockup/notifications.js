@@ -44,7 +44,7 @@
   function toast(item, count) {
     toastItem = item;
     clearTimeout(toastTimer);
-    $('ntToastText').textContent = (item.context ? 'โหมดสาธิต · '+(item.context.kind==='captured'?'ผลบันทึกจริงจากภาพนิ่ง':'สถานการณ์สมมติ')+' · ' : '') + (names[item.event_type] || item.event_type) + ' · ' + item.source_label +
+    $('ntToastText').textContent = (item.context ? 'โหมดสาธิต · '+(item.context.kind==='captured'?'ผลเดิมจากภาพนิ่ง · ไม่รันใหม่':'สถานการณ์สมมติ')+' · ' : '') + (names[item.event_type] || item.event_type) + ' · ' + item.source_label +
       ' · รอตรวจสอบโดยผู้ใช้' + (count > 1 ? ' · มีรายการใหม่ในรอบนี้ '+count+' รายการ' : '');
     $('ntToast').hidden = false;
     toastTimer = setTimeout(() => { $('ntToast').hidden = true; },12000);
@@ -68,7 +68,7 @@
       cursor = data.cursor; more = data.has_more; recover = false;
       render();
       $('ntCount').textContent = String(data.total);
-      $('ntMessage').textContent = data.total+' รายการแจ้งที่บันทึก · แสดงล่าสุด 20 รายการ · เวลา Bangkok';
+      $('ntMessage').textContent = 'ประวัติแจ้งทั้งหมด '+data.total+' รายการ · แสดงล่าสุด 20 รายการ · เวลา Bangkok';
       $('ntRule').textContent = 'พัก '+data.cooldown_s+' วินาทีต่อรายการประวัติ · รับทราบ/ปิดรายการใน Logs เพื่อหยุดแจ้งซ้ำ';
       if (fresh.length) toast(fresh.reduce((a,b) => a.id>b.id ? a : b),fresh.length);
     } catch (err) {

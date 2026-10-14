@@ -83,6 +83,9 @@
     confidenceList.append(confidenceRow('Fight · X3D', latestFight, null));
     if (confidenceMeta && latest) {
       confidenceMeta.textContent = (latest.model || 'YOLO') + ' · ' + (latest.context ? 'เวลาเดโม '+Number(latest.demo_time_s||0).toFixed(2) : Number(latest.time_s||0).toFixed(2)) + ' s · ' + (latest.detection_count || 0) + ' กล่อง';
+    } else if (confidenceMeta) {
+      const demoRunning=window.CCTVMode.active&&window.CCTVMode.demo?.status().status==='running';
+      confidenceMeta.textContent=demoRunning?'รอเหตุการณ์สาธิตแรก · วินาที 10 · ไม่ได้ inference ใหม่':window.CCTVMode.active?'เลือกสถานการณ์แล้วกดเริ่ม Live':'รอผลจากโมเดลจริง';
     }
   }
   function renderMetrics(message) {
@@ -104,6 +107,9 @@
     if(token!==generation||socket!==connection)return;
         if (msg.session_id !== activeSession) return;
         if (msg.type === 'preview' && typeof msg.jpeg_b64 === 'string') {
+          preview.alt = msg.context
+            ? 'ภาพวาดสถานการณ์สาธิต · ไม่ได้รัน YuNet หรือยืนยันการเบลอใบหน้า'
+            : 'Live preview ที่ผ่านการเบลอใบหน้า';
           preview.src = 'data:image/jpeg;base64,' + msg.jpeg_b64; preview.hidden = false;
         } else if (msg.type === 'confidence') {
           renderConfidence(msg);
@@ -146,7 +152,7 @@
         const body=await window.CCTVMode.startLive();if(token!==generation)return;activeSession=body.session_id;
         let unsubscribe;const connection={close:()=>unsubscribe?.()};socket=connection;
         unsubscribe=window.CCTVMode.subscribeLive(msg=>handleMessage(msg,token,connection));
-        setControls(true);stop.disabled=false;renderMetrics(body);addEvent('เริ่มรอบสาธิต '+body.session_id+' · snapshot revision '+body.settings_revision);report('โหมดสาธิต · เริ่มแล้ว · ผลแรกวินาที 10 หรือกดเหตุการณ์ถัดไป');
+        setControls(true);stop.disabled=false;renderMetrics(body);renderConfidence(null);addEvent('เริ่มรอบสาธิต '+body.session_id+' · snapshot revision '+body.settings_revision);report('โหมดสาธิต · เริ่มแล้ว · ผลแรกวินาที 10 หรือกดเหตุการณ์ถัดไป');
         $('liveDemoContext').hidden=false;$('liveDemoContext').textContent=window.CCTVMode.origin(body.context)+' · snapshot revision '+body.settings_revision;
       }catch(error){report(error.message);finishSession();}
       finally{window.CCTVMode.lock('live-start',false);}
@@ -239,6 +245,9 @@
   });
   document.addEventListener('cctv:modechange',() => {
     ++generation;finishSession();preview.hidden=true;preview.removeAttribute('src');events.replaceChildren();latestFight=null;latestConfidenceMessage=null;renderConfidence(null);
+    preview.alt=window.CCTVMode.active
+      ? 'ภาพวาดสถานการณ์สาธิต · ไม่ได้รัน YuNet หรือยืนยันการเบลอใบหน้า'
+      : 'Live preview ที่ผ่านการเบลอใบหน้า';
     $('liveDemoContext').hidden=true;report(window.CCTVMode.active?'พร้อมเริ่มสถานการณ์สาธิต':'ยังไม่เริ่ม session');
   });
   window.addEventListener('beforeunload', () => {

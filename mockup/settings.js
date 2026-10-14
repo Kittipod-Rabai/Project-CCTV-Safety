@@ -60,7 +60,7 @@
     }
     $('azSavedSettingsMeta').textContent = saved
       ? (window.CCTVMode.active ? 'ใช้ snapshot ค่าจำลองเมื่อเริ่มรอบ · ไม่ inference ใหม่' : 'backend อ่านค่าที่บันทึกเมื่อเริ่มแต่ละคำขอ') + (latest ? ' · ค่าที่อ่านล่าสุด revision '+latest.revision : ' · ยังอ่านค่าบันทึกไม่ได้')
-      : 'ใช้ค่าขั้นสูงในฟอร์มเฉพาะคำขอนี้ ไม่บันทึกทับค่าระบบ';
+      : (window.CCTVMode.active ? 'ใช้ค่าขั้นสูงในฟอร์มเฉพาะรอบสาธิตนี้ ไม่บันทึกทับค่าตั้งต้น' : 'ใช้ค่าขั้นสูงในฟอร์มเฉพาะคำขอนี้ ไม่บันทึกทับค่าระบบ');
   }
   async function api(options) {
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(),10000);
@@ -77,7 +77,7 @@
   async function load(force = false) {
     if (busy) return;
     const token = modeToken;
-    busy = true; buttons(); $('stMessage').textContent = 'กำลังอ่านค่าที่บันทึก…';
+    busy = true; buttons(); $('stMessage').textContent = window.CCTVMode.active ? 'กำลังอ่านค่าตั้งต้นโหมดสาธิต…' : 'กำลังอ่านค่าที่บันทึก…';
     try {
       const data = await api();
       if (token !== modeToken) return;
@@ -88,7 +88,9 @@
     } catch (error) {
       if (token !== modeToken) return;
       $('stMessage').textContent = 'อ่านค่าตั้งไม่ได้ · '+error.message + (loaded ? ' · ฟอร์มยังเป็นค่าที่โหลดครั้งก่อน' : '');
-      $('azSavedSettingsMeta').textContent = 'อ่านค่าที่บันทึกไม่ได้ · การวิเคราะห์จะตรวจที่ backend อีกครั้ง';
+      $('azSavedSettingsMeta').textContent = window.CCTVMode.active
+        ? 'อ่านค่าตั้งต้นโหมดสาธิตไม่ได้ · ไม่มีการเรียก backend หรือรันโมเดลแทน'
+        : 'อ่านค่าที่บันทึกไม่ได้ · การวิเคราะห์จะตรวจที่ backend อีกครั้ง';
     } finally { if (token === modeToken) { busy = false; buttons(); } }
   }
   $('stForm').addEventListener('input',() => { dirty = true; buttons(); $('stMessage').textContent = 'มีค่าที่แก้แต่ยังไม่บันทึก'; });

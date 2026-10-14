@@ -31,8 +31,9 @@
   function series(id, entries) {
     const max = Math.max(1, ...entries.map(x => x[1]));
     $(id).replaceChildren();
-    for (const [label, count] of entries) {
+    for (const [label, count, eventType] of entries) {
       const row = node('div', '', 'db-bar'), meter = document.createElement('meter');
+      if (eventType) row.dataset.eventType = eventType;
       meter.min = 0; meter.max = max; meter.value = count;
       meter.setAttribute('aria-label', label + ': ' + count + ' รายการ');
       row.append(node('span',label), meter, node('b',String(count)));
@@ -40,12 +41,14 @@
     }
   }
   function history(data) {
+    const seed = $('dbDemoSeed');
+    if (seed) seed.hidden = !window.CCTVMode.active;
     $('dbTotal').textContent = String(data.total);
     $('dbPending').textContent = String(data.by_status.new);
     $('dbReviewed').textContent = 'รับทราบ ' + data.by_status.ack + ' · ปิดรายการ ' + data.by_status.closed;
     $('dbRuns').textContent = String(data.run_count);
     series('dbDaily', data.daily.map(x => [x.date, x.count]));
-    series('dbTypes', Object.entries(data.by_type).map(([key,n]) => [types[key] || key,n]));
+    series('dbTypes', Object.entries(data.by_type).map(([key,n]) => [types[key] || key,n,key]));
     $('dbLatest').replaceChildren();
     for (const item of data.latest) {
       const row = node('div','', 'db-result');
@@ -67,7 +70,7 @@
     if (data.context) $('dbLive').append(node('p',window.CCTVMode.origin(data.context)));
     $('dbLiveState').textContent = states[data.status] || data.status;
     if (!data.session_id) {
-      $('dbLive').append(node('p','ยังไม่มีเซสชัน Live ใน backend process นี้'));
+      $('dbLive').append(node('p',window.CCTVMode.active ? 'ยังไม่ได้เริ่ม Live ในสถานการณ์สาธิต' : 'ยังไม่มีเซสชัน Live ใน backend process นี้'));
     } else {
       for (const text of ['เซสชัน: ' + data.session_id,
         'สถานะ: ' + (states[data.status] || data.status),
@@ -86,7 +89,8 @@
     loading = true;
     if (!background) {
       clearHistory(); $('dbLive').replaceChildren(); $('dbLiveState').textContent = '—';
-      $('dbMessage').textContent = 'กำลังอ่านภาพรวมจาก SQLite…';
+      $('dbMessage').textContent = window.CCTVMode.active
+        ? 'กำลังอ่านภาพรวมสาธิตจากหน่วยความจำ…' : 'กำลังอ่านภาพรวมจาก SQLite…';
       $('dbLiveMessage').textContent = 'กำลังอ่านสถานะ Live…';
     }
     try {

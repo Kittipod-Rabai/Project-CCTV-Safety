@@ -10,7 +10,7 @@ const source = readFileSync(require('node:path').join(__dirname,'../mockup/demo-
 function setup(fetch) {
   const nodes = new Map(), events = new Map(), timers=[];
   class Element {
-    constructor() { this.children=[]; this.listeners={}; this.dataset={}; this.classList={add(){},remove(){}}; }
+    constructor(tag='div') { this.tagName=tag.toUpperCase(); this.children=[]; this.listeners={}; this.dataset={}; this.classList={add(){},remove(){}}; }
     set id(value) { this._id=value; nodes.set(value,this); }
     get id() { return this._id; }
     append(...items) { this.children.push(...items); }
@@ -19,11 +19,13 @@ function setup(fetch) {
     setAttribute(key,value) { this[key]=value; }
     addEventListener(name,fn) { (this.listeners[name] ||= []).push(fn); }
     querySelector(selector) { return nodes.get(selector.slice(1)); }
+    getContext() { return {fillRect(){},beginPath(){},arc(){},fill(){},moveTo(){},lineTo(){},save(){},restore(){},translate(){},rotate(){},fillText(){}}; }
+    toDataURL() { return 'data:image/jpeg;base64,c3ludGhldGlj'; }
   }
   for(const id of ['ntToggle','ntPanel','ntToast','pgSub','feed','mask','rlMask']) {const n=new Element(); n.id=id;}
   const body=new Element(); body.dataset.page='dashboard';
   const monitor=new Element(), main=new Element(), topbar=new Element();
-  const document={body,hidden:false,createElement:()=>new Element(),getElementById:id=>nodes.get(id),
+  const document={body,hidden:false,createElement:tag=>new Element(tag),getElementById:id=>nodes.get(id),
     querySelector:selector=>selector==='.live-demo'?monitor:selector==='main'?main:topbar,
     querySelectorAll:()=>[],addEventListener:(name,fn)=>{(events.get(name)||events.set(name,[]).get(name)).push(fn);},
     dispatchEvent:ev=>{for(const fn of events.get(ev.type)||[])fn(ev);}};
@@ -31,13 +33,17 @@ function setup(fetch) {
   class CustomEvent {constructor(type,options){this.type=type;this.detail=options?.detail;}}
   vm.runInNewContext(source,{window,document,fetch,Response,DOMException,AbortController,CustomEvent,
     queueMicrotask,TextDecoder,btoa,crypto:require('node:crypto').webcrypto,setTimeout:()=>1,clearTimeout(){},setInterval:fn=>{timers.push(fn);return timers.length;},clearInterval(){},Intl,Date,Map,Set,console});
-  return {mode:window.CCTVMode,toggle:nodes.get('modeToggle'),banner:nodes.get('modeBanner'),body,
+  return {mode:window.CCTVMode,toggle:nodes.get('modeToggle'),banner:nodes.get('modeBanner'),scenario:nodes.get('demoScenario'),body,
     document,timers,click:()=>nodes.get('modeToggle').listeners.click[0]()};
 }
 const json = data => new Response(JSON.stringify(data),{headers:{'Content-Type':'application/json'}});
 for(const status of ['starting','running','degraded','stopping']) test('requires stopping real Live: '+status,async()=>{
   let calls=0;const app=setup(async()=>{++calls;return json({status});});
   await app.click();assert.equal(app.mode.active,false);assert.match(app.banner.textContent,/หยุด Live/);assert.equal(calls,1);
+});
+test('PPE missing is the default demo storyline',()=>{
+  const app=setup(async()=>json({status:'idle'}));
+  assert.equal(app.scenario.value,'ppe-missing');
 });
 test('unknown status and network failure keep real mode',async()=>{
   for(const fetch of [async()=>json({status:'unknown'}),async()=>{throw Error('offline');}]) {
@@ -91,7 +97,9 @@ function capturePack() {
 test('approved local pack creates a captured result with demo provenance and no API writes',async()=>{
   const pack=capturePack(),calls=[];
   const app=setup(async(url)=>{calls.push(url);if(url==='/api/live/status')return json({status:'idle'});if(url==='demo-manifest.json')return json(pack.manifest);return new Response(url.endsWith('.jpg')?pack.image:pack.payload);});
-  await app.click();const result=await app.mode.analyze();assert.equal(result.context.kind,'captured');assert.equal(result.stage1.is_model_output,false);assert.equal(result.stage1.frames[0].detections[0].confidence,.8779);
+  await app.click();app.scenario.value='captured-smoke';const result=await app.mode.analyze();assert.equal(result.context.kind,'captured');assert.equal(result.stage1.is_model_output,false);
+  assert.deepEqual(result.stage1.frames[0].detections.map(d=>[d.class_name,d.confidence]),[['smoke',.8779],['fire',.3589]]);
+  assert.match(result.context.note,/D-Fire กลางแจ้ง.*ไม่ใช่ภาพจากโรงงาน.*ไม่ได้รันโมเดลใหม่.*Smoke 0\.8779 \/ Fire 0\.3589/);
   assert.deepEqual(calls,['/api/live/status','demo-manifest.json','demo-assets/smoke-result.json','demo-assets/smoke-preview.jpg']);
 });
 for(const fault of ['missing','checksum','unapproved','incomplete'])test('pack failure stays local: '+fault,async()=>{
@@ -100,6 +108,7 @@ for(const fault of ['missing','checksum','unapproved','incomplete'])test('pack f
   if(fault==='unapproved')pack.manifest.approved_preview=false;
   if(fault==='incomplete'){pack.payload=Buffer.from(JSON.stringify({result:{model:'yolov8n',frames:[]}}));pack.manifest.payload.sha256=require('node:crypto').createHash('sha256').update(pack.payload).digest('hex');}
   const app=setup(async(url)=>{if(url==='/api/live/status')return json({status:'idle'});if(url==='demo-manifest.json')return json(pack.manifest);if(fault==='missing')return new Response('missing',{status:404});return new Response(url.endsWith('.jpg')?pack.image:pack.payload);});
+  app.scenario.value='captured-smoke';
   await app.click();await assert.rejects(app.mode.analyze());assert.equal(app.mode.demo.store.runs.length,28);
 });
 test('hidden tabs freeze the scenario and resume without catch-up; leaving stops callbacks',async()=>{

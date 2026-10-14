@@ -14,6 +14,8 @@ data/processed/
 data/local/
 reports/
 mockup/demo-assets/
+!mockup/assets/
+!mockup/assets/aegivis-logo.png
 configs/datasets.local.yaml
 .env
 .venv/

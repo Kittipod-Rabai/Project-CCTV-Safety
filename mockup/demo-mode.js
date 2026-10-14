@@ -10,13 +10,14 @@
   const toolbar=document.createElement('div');toolbar.id='demoToolbar';toolbar.hidden=true;
   const scenario=document.createElement('select');scenario.id='demoScenario';scenario.setAttribute('aria-label','สถานการณ์สาธิต');
   for(const item of window.CCTVDemo.SCENARIOS){const option=document.createElement('option');option.value=item.id;option.textContent=item.label;scenario.append(option);}
-  scenario.value='captured-smoke';
+  scenario.value='ppe-missing';
   const buttons={};for(const [key,label] of [['pause','พักสถานการณ์'],['next','เหตุการณ์ถัดไป'],['reset','เริ่มสาธิตใหม่']]){const button=document.createElement('button');button.id='demo-'+key;button.type='button';button.className='btn';button.textContent=label;buttons[key]=button;}
   const elapsed=document.createElement('span');elapsed.id='demoElapsed';elapsed.setAttribute('role','status');
-  const guide=document.createElement('p');guide.id='demoGuide';guide.textContent='AEGIVIS ผู้พัฒนา · โรงงาน/คลังสินค้าสมมติ · เลือกสถานการณ์แล้วกดเริ่ม Live หรือวิเคราะห์ · เรื่องหลัก 90 วินาที · สื่อจริง: เล่นซ้ำจากภาพนิ่ง';
+  const guide=document.createElement('p');guide.id='demoGuide';guide.textContent='เรื่องหลัก: PPE ไม่ครบ · ฉากโรงงานสมมติ · คะแนนกำหนดไว้ ไม่ได้ inference ใหม่ · Live → แจ้งเตือน → Logs → Dashboard';
   toolbar.append(scenario,...Object.values(buttons),elapsed,guide);banner.after(toolbar);
+  const toast=document.getElementById('ntToast');if(toast)toolbar.after(toast);
   const texts=new Map(),realChoices=new Map();
-  const copy={dbTitle:'ภาพรวมผลวิเคราะห์สาธิต',dbUpdated:'ข้อมูลสาธิตในหน่วยความจำ',stTitle:'ค่าตั้งต้นการวิเคราะห์สาธิต',livePilotTitle:'สาธิตแหล่งภาพหนึ่งรายการ',liveRuntimeStatus:'โหมดสาธิต · ไม่ได้รันโมเดลหรือเปิดกล้อง',liveSourceHelp:'ใช้สถานการณ์ที่เลือกบนแถบสาธิต · ไม่มีการอัปโหลดไฟล์ส่วนตัว'};
+  const copy={dbTitle:'ภาพรวมผลวิเคราะห์สาธิต',dbUpdated:'ข้อมูลสาธิตในหน่วยความจำ',stTitle:'ค่าตั้งต้นการวิเคราะห์สาธิต',livePilotTitle:'สาธิตแหล่งภาพหนึ่งรายการ',liveRuntimeStatus:'โหมดสาธิต · ไม่ได้รันโมเดลหรือเปิดกล้อง',liveSourceHelp:'ใช้สถานการณ์ที่เลือกบนแถบสาธิต · ไม่มีการอัปโหลดไฟล์ส่วนตัว',azUseSavedSettingsLabel:'ใช้ค่าที่บันทึกจากโหมดสาธิต'};
   function contextualCopy(){
     for(const id of ['azDevice','liveDevice','azModel','liveModel']){
       const input=$(id);if(!input)continue;
@@ -95,7 +96,7 @@
   };
   buttons.pause.addEventListener('click',()=>{provider.paused=!provider.paused;notify();});buttons.next.addEventListener('click',()=>{provider.next();notify();});
   buttons.reset.addEventListener('click',()=>{if(locks.size)return;++epoch;++loadToken;provider.reset();change();notify();});
-  scenario.addEventListener('change',()=>{guide.textContent='AEGIVIS ผู้พัฒนา · '+scenario.selectedOptions[0].textContent+' · เลือกเริ่ม Live หรือวิเคราะห์ · ไม่ได้ inference ใหม่';});
+  scenario.addEventListener('change',()=>{guide.textContent='สถานการณ์ที่เลือก: '+scenario.selectedOptions[0].textContent+' · เลือกเริ่ม Live หรือวิเคราะห์ · ไม่ได้ inference ใหม่';});
   toggle.addEventListener('click',async()=>{
     if(switching||writes||locks.size)return;switching=true;sync();
     try{
@@ -104,7 +105,7 @@
         if(!response.ok||!['idle','starting','running','degraded','stopping','stopped','completed','error','interrupted'].includes(data.status))throw Error('ตรวจสถานะ Live ไม่สำเร็จ');
         if(['starting','running','degraded','stopping'].includes(data.status))throw Error('กรุณาหยุด Live จริงให้จบก่อนเข้าโหมดสาธิต');if(writes||locks.size)throw Error('รอการทำงานจริงให้จบก่อน');}
       ++epoch;++loadToken;for(const controller of pending)controller.abort();provider?.stop();active=!active;provider=active?newProvider():null;document.body.dataset.mode=active?'demo':'real';switching=false;
-      banner.textContent=active?'โหมดสาธิต · โรงงาน/คลังสินค้าสมมติ · AEGIVIS ผู้พัฒนา · ไม่เขียนฐานข้อมูลจริง':'โหมดจริง · อ่านข้อมูลจาก backend';change();
+      banner.textContent=active?'โหมดสาธิต · ข้อมูลอยู่ในหน่วยความจำ · ไม่เขียนฐานข้อมูลจริง':'โหมดจริง · อ่านข้อมูลจาก backend';change();
     }catch(error){banner.textContent=error.name==='AbortError'?'ตรวจสถานะ Live ไม่ได้ · ลองอีกครั้ง':error.message;}
     finally{switching=false;sync();toggle.focus();}
   });
