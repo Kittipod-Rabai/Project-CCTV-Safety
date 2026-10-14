@@ -30,10 +30,11 @@
 
 ## ผลทดสอบ
 
-- ชุดทดสอบทั้งหมด **285 passed, 0 failed, 0 errors, 0 skipped** รอบสุดท้ายใช้เวลาประมาณ 20.93 วินาที
+- ชุดทดสอบทั้งหมด **285 passed, 0 failed, 0 errors, 0 skipped** รอบตรวจงาน 2 ใช้เวลาประมาณ 20.93 วินาที
 - ครอบคลุม persistence, aggregate counts, atomic rollback, concurrent writes, parameterized search, pagination, status audit/idempotency, invalid inputs, storage failure และการคืนทรัพยากรเมื่อ Live เขียนประวัติไม่ได้
 - แยกฐานข้อมูลใน tests ด้วย tmp_path; real-weight verification harness ของงาน 1 เปลี่ยนให้ใช้ฐานข้อมูลใน reports แทนฐานข้อมูลเริ่มต้นของผู้ใช้
 - หลังปรับ modal/pager ตรวจ static frontend ซ้ำ: 39 passed; JavaScript syntax, Python compilation และ git diff --check ผ่าน
+- ตรวจซ้ำก่อนแยก commit: snapshot งาน 1 ผ่าน 269 tests ใน 20.12 วินาที และงาน 1–2 รวมผ่าน 285 tests ใน 19.34 วินาที ดู [JUnit งาน 1](../../reports/commit-split/work1-pytest.xml) และ [JUnit งาน 2](../../reports/commit-split/work2-pytest.xml) เป็นเวลาทดสอบ ไม่ใช่เวลา inference
 - มี deprecation warnings เดิมจาก FastAPI/Starlette/PyTorch โดยไม่ได้เปลี่ยน dependencies
 
 ### ผลโมเดลจริง
